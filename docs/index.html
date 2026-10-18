@@ -1,6 +1,13 @@
+<!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f3f5f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f141c" media="(prefers-color-scheme: dark)">
+<meta name="description" content="Win rate, units and every graded bet for Action Network PRO sharp money plays with 5+ sharp moves.">
 <title>Sharp Move Tracker</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -39,9 +46,12 @@
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); background: var(--bg); }
 body {
-  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5;
 }
+img { max-width: 100%; }
 .wrap {
   max-width: 1120px; margin: 0 auto;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
@@ -161,6 +171,8 @@ tr.total td { font-weight: 600; border-bottom: 0; border-top: 2px solid var(--in
 footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
 footer p { margin: 0; max-width: 80ch; }
 </style>
+</head>
+<body>
 
 <div class="wrap">
   <header>
@@ -543,3 +555,5 @@ fetch('data.json').then((r) => r.json()).then((d) => {
 }).catch(() => { $('updated').textContent = 'Could not load the bet data. Reload the page to try again.'; render(); });
 render();
 </script>
+</body>
+</html>
