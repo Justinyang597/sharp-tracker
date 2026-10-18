@@ -148,6 +148,9 @@ main { padding-block: 16px calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0p
 .play-top { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
 .lg-badge { font-family: var(--font-data); font-size: 11px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; color: var(--ink); }
 .play-top .mkt { margin-left: auto; }
+.play.live { opacity: .72; }
+.live-tag { color: var(--loss); font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
+.live-tag::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--loss); }
 .play-main { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
 .play-pick { font-family: var(--font-display); font-weight: 700; font-size: 26px; line-height: 1.05; letter-spacing: .01em; }
 .play-game { font-size: 13px; color: var(--muted); margin-top: 2px; }
@@ -584,9 +587,9 @@ function meter(r) {
     <div class="meter-bar" aria-hidden="true"><i class="s" style="flex:${r.steam}"></i><i class="r" style="flex:${r.rlm}"></i><i style="flex:${Math.max(0, 20 - n)}"></i></div>
   </div>`;
 }
-function playCard(r) {
-  return `<article class="card play">
-    <div class="play-top"><span class="lg-badge">${r.lg}</span><span>${fmtTime(r.t)}</span><span class="mkt">${MNAME[r.m]}</span></div>
+function playCard(r, live) {
+  return `<article class="card play${live ? ' live' : ''}">
+    <div class="play-top"><span class="lg-badge">${r.lg}</span>${live ? '<span class="live-tag">In progress</span>' : `<span>${fmtTime(r.t)}</span>`}<span class="mkt">${MNAME[r.m]}</span></div>
     <div class="play-main">
       <div style="min-width:0"><div class="play-pick">${esc(pickLabel(r))}</div><div class="play-game">${esc(r.a)} @ ${esc(r.h)}</div></div>
       <div class="odds-pill">${odds(r.odds)}</div>
@@ -596,27 +599,34 @@ function playCard(r) {
 }
 
 function renderPlays(pending) {
-  const up = sortRows('up', pending);
+  // Started but not graded yet: shown below upcoming, until the next Refresh grades them.
+  const now = Date.now();
+  const up = sortRows('up', pending.filter((r) => new Date(r.t).getTime() > now));
+  const live = pending.filter((r) => new Date(r.t).getTime() <= now).sort((a, b) => a.t.localeCompare(b.t));
   playCount = up.length;
   paintBadge();
+  const liveHtml = live.length
+    ? `<div class="day-label">In progress · result after next refresh</div>${live.map((r) => playCard(r, true)).join('')}`
+    : '';
   if (!up.length) {
-    $('plays-sub').textContent = '';
-    $('plays').innerHTML = `<div class="card empty" style="grid-column:1/-1"><strong>No plays with ${state.min}+ sharp moves right now</strong><p>New plays show up as sharp money comes in, usually the day before and the day of a game. Press Refresh to check for new ones.</p></div>`;
+    $('plays-sub').textContent = live.length ? `No upcoming plays · ${live.length} in progress` : '';
+    $('plays').innerHTML = `<div class="card empty" style="grid-column:1/-1"><strong>No upcoming plays with ${state.min}+ sharp moves</strong><p>New plays show up as sharp money comes in, usually the day before and the day of a game. Press Refresh to check for new ones.</p></div>` + liveHtml;
     return;
   }
   const next = up.slice().sort((a, b) => a.t.localeCompare(b.t))[0];
-  $('plays-sub').textContent = `${up.length} play${up.length === 1 ? '' : 's'} · next starts ${dayName(localDay(next.t)).toLowerCase() === 'today' ? 'at' : dayName(localDay(next.t))} ${fmtTime(next.t)}`;
+  $('plays-sub').textContent = `${up.length} play${up.length === 1 ? '' : 's'} · next starts ${dayName(localDay(next.t)).toLowerCase() === 'today' ? 'at' : dayName(localDay(next.t))} ${fmtTime(next.t)}${live.length ? ` · ${live.length} in progress` : ''}`;
+  let html = '';
   if (state.sort === 't') {
-    let html = '', last = '';
+    let last = '';
     for (const r of up) {
       const d = localDay(r.t);
       if (d !== last) { html += `<div class="day-label">${dayName(d)}</div>`; last = d; }
       html += playCard(r);
     }
-    $('plays').innerHTML = html;
   } else {
-    $('plays').innerHTML = up.map(playCard).join('');
+    html = up.map((r) => playCard(r)).join('');
   }
+  $('plays').innerHTML = html + liveHtml;
 }
 
 function drawChart(buckets) {

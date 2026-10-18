@@ -157,9 +157,25 @@ def rows_for(league, game):
     return out
 
 
+def game_state(league, game):
+    """Status and final score for a game, keyed like the start of a row id."""
+    done = game.get("status") in ("complete", "closed")
+    box = game.get("boxscore") or {}
+    return f"{league}-{game['id']}", {
+        "st": game.get("status"),
+        "as": box.get("total_away_points") if done else None,
+        "hs": box.get("total_home_points") if done else None,
+        "done": done,
+    }
+
+
 def collect(token, start, end):
-    """Returns (rows, games_seen, games_with_pro, errors)."""
+    """Returns (rows, games, games_seen, games_with_pro, errors).
+
+    games maps "league-gameid" to that game's status and score, for every game
+    pulled, so plays whose sharp signal later dropped below 5 still get graded."""
     rows, errors = [], []
+    games_state = {}
     seen = with_pro = 0
 
     def pull(league, params, label):
@@ -176,6 +192,8 @@ def collect(token, start, end):
         with_pro += sum(1 for g in games if g.get("pro_report"))
         for g in games:
             rows.extend(rows_for(league, g))
+            key, gs = game_state(league, g)
+            games_state[key] = gs
         time.sleep(0.15)
         return j
 
@@ -194,7 +212,7 @@ def collect(token, start, end):
             for extra in extras:
                 pull(lg, f"&date={d:%Y%m%d}{extra}", f"{d:%Y%m%d}")
             d += timedelta(days=1)
-    return rows, seen, with_pro, errors
+    return rows, games_state, seen, with_pro, errors
 
 
 def main():
@@ -215,7 +233,7 @@ def main():
 
     try:
         check_token(token)
-        new_rows, seen, with_pro, errors = collect(token, start, end)
+        new_rows, games_state, seen, with_pro, errors = collect(token, start, end)
     except TokenError as e:
         sys.exit(f"{e}. Your Action Network login token expired: copy a fresh "
                  "AN_SESSION_TOKEN_V1 cookie into the AN_TOKEN secret (see README).")
@@ -235,6 +253,22 @@ def main():
     before = len(rows)
     for r in new_rows:
         rows[r["id"]] = r
+
+    # A play logged earlier whose sharp signal has since dropped below 5 (or vanished)
+    # isn't in new_rows, but its game was pulled: keep its last counts and line, and
+    # update the status, score and result so it doesn't sit "scheduled" forever.
+    fresh_ids = {r["id"] for r in new_rows}
+    regraded = 0
+    for r in rows.values():
+        if r["id"] in fresh_ids or r.get("r"):
+            continue
+        gs = games_state.get(r["id"].rsplit("-", 2)[0])
+        if not gs:
+            continue
+        r["st"], r["as"], r["hs"] = gs["st"], gs["as"], gs["hs"]
+        if gs["done"]:
+            r["r"] = grade(r["m"], r["s"], r["line"], gs["as"], gs["hs"])
+            regraded += r["r"] is not None
     out = sorted(rows.values(), key=lambda r: (r["t"] or "", r["id"]))
     updated = datetime.now(timezone.utc).isoformat(timespec="seconds")
     lines = ",\n".join(json.dumps(r, separators=(",", ":")) for r in out)
@@ -243,7 +277,7 @@ def main():
 
     graded = sum(1 for r in out if r.get("r"))
     print(f"{start}..{end}: {seen} games ({with_pro} with PRO data), {len(new_rows)} bets with {MIN_MOVES}+ moves; "
-          f"{len(out) - before} new. Total {len(out)} bets, {graded} graded.")
+          f"{len(out) - before} new, {regraded} older plays graded. Total {len(out)} bets, {graded} graded.")
     for e in errors[:10]:
         print("warning:", e)
 
