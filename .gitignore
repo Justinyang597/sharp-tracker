@@ -1,0 +1,5 @@
+# Old PC-only pipeline (Chrome + local receiver) and its working copies
+site/
+data/
+__pycache__/
+*.tmp
