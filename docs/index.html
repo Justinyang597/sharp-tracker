@@ -570,7 +570,7 @@ $('more').onclick = () => { state.shown += 100; render(); };
 // ---- Freshness: auto-check for new data, and the Refresh button ----
 // Optional relay that starts a new pull from Action Network (see worker/README.md).
 // Empty means Refresh only re-checks for the latest finished update.
-const REFRESH_URL = '';
+const REFRESH_URL = 'https://sharp-tracker-refresh.justinyaang.workers.dev/';
 let updatedAt = null; // Date of the data currently shown
 let refreshing = false;
 
