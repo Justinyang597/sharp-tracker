@@ -4,214 +4,393 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#f3f5f8" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f141c" media="(prefers-color-scheme: dark)">
-<meta name="description" content="Win rate, units and every graded bet for Action Network PRO sharp money plays with 5+ sharp moves.">
+<meta name="theme-color" content="#f2f4f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1219" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Sharp Tracker">
+<meta name="description" content="Upcoming plays, win rate and every graded bet for Action Network PRO sharp money plays with 5+ sharp moves.">
 <title>Sharp Move Tracker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231d5bd8'/%3E%3Cpath d='M14 44l12-14 9 8 15-20' stroke='white' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%231d5bd8'/%3E%3Cpath d='M14 44l12-14 9 8 15-20' stroke='white' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: scoreboard header with the record, then a control rail, then
-   "win rate by sharp moves" as the centerpiece, breakdowns, and the bet log. */
+/* Layout: a phone app. Sticky top bar (title, freshness, refresh, filter chips),
+   one screen at a time (Plays / Stats / History), fixed bottom tab bar.
+   From 900px up, the tabs move into the top bar and screens widen into grids. */
 :root {
-  --bg: #f3f5f8;
+  --bg: #f2f4f8;
   --surface: #ffffff;
-  --ink: #141a24;
-  --muted: #5d6878;
-  --line: #dde2ea;
+  --surface-2: #f7f8fb;
+  --ink: #121822;
+  --muted: #5c6777;
+  --line: #e0e5ec;
   --accent: #1d5bd8;
-  --accent-soft: #e3ebfb;
-  --win: #128a4a;
-  --win-soft: #def3e6;
-  --loss: #c93636;
-  --loss-soft: #f8e1e1;
+  --accent-ink: #ffffff;
+  --accent-soft: #e4ecfb;
+  --win: #108547;
+  --win-soft: #dcf2e5;
+  --loss: #c83434;
+  --loss-soft: #f9e2e2;
   --push: #7a8493;
   --push-soft: #eceff3;
+  --steam: #1d5bd8;
+  --rlm: #8a5cf0;
+  --bar-bg: color-mix(in srgb, var(--bg) 92%, transparent);
+  --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .04);
   --font-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
   --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --font-data: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --tabbar-h: 60px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0f141c; --surface: #161d28; --ink: #e8edf4; --muted: #95a1b3; --line: #273142;
-    --accent: #5b8ff0; --accent-soft: #1b2a45; --win: #3cc479; --win-soft: #143224;
-    --loss: #f06a6a; --loss-soft: #3a1c1f; --push: #95a1b3; --push-soft: #222b38; color-scheme: dark;
+    --bg: #0d1219; --surface: #151c27; --surface-2: #1a2230; --ink: #e9eef5; --muted: #93a0b2; --line: #253043;
+    --accent: #5b8ff0; --accent-ink: #0d1219; --accent-soft: #1a2a46; --win: #3dc47a; --win-soft: #12301f;
+    --loss: #f06b6b; --loss-soft: #3a1b1e; --push: #93a0b2; --push-soft: #212a37; --steam: #5b8ff0; --rlm: #a986ff;
+    --shadow: none; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0f141c; --surface: #161d28; --ink: #e8edf4; --muted: #95a1b3; --line: #273142;
-  --accent: #5b8ff0; --accent-soft: #1b2a45; --win: #3cc479; --win-soft: #143224;
-  --loss: #f06a6a; --loss-soft: #3a1c1f; --push: #95a1b3; --push-soft: #222b38; color-scheme: dark;
+  --bg: #0d1219; --surface: #151c27; --surface-2: #1a2230; --ink: #e9eef5; --muted: #93a0b2; --line: #253043;
+  --accent: #5b8ff0; --accent-ink: #0d1219; --accent-soft: #1a2a46; --win: #3dc47a; --win-soft: #12301f;
+  --loss: #f06b6b; --loss-soft: #3a1b1e; --push: #93a0b2; --push-soft: #212a37; --steam: #5b8ff0; --rlm: #a986ff;
+  --shadow: none; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); background: var(--bg); }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; background: var(--bg); }
 body {
-  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.45;
+  -webkit-tap-highlight-color: transparent;
 }
-img { max-width: 100%; }
-.wrap {
-  max-width: 1120px; margin: 0 auto;
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: 28px 64px;
-  display: grid; gap: 28px;
-}
-h1, h2 { font-family: var(--font-display); font-weight: 700; letter-spacing: .01em; text-wrap: balance; margin: 0; }
-h1 { font-size: clamp(34px, 6vw, 52px); line-height: 1; text-transform: uppercase; }
-h2 { font-size: 24px; text-transform: uppercase; }
-.eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-weight: 600; }
+button, select, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .num { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
 .muted { color: var(--muted); }
+.pos { color: var(--win); }
+.neg { color: var(--loss); }
+.gutter {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.inner { max-width: 1040px; margin: 0 auto; }
 
-/* Header */
-header { display: grid; gap: 18px; }
-.head-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px; }
-.fresh { display: grid; grid-template-columns: auto auto; align-items: center; justify-content: end; gap: 4px 10px; }
-.updated { font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
-.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--win); flex: none; }
+/* ---------- Top bar ---------- */
+.appbar {
+  position: sticky; top: 0; z-index: 20;
+  background: var(--bar-bg); backdrop-filter: saturate(1.6) blur(14px); -webkit-backdrop-filter: saturate(1.6) blur(14px);
+  border-bottom: 1px solid var(--line);
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.appbar-row { display: flex; align-items: center; gap: 12px; padding-block: 10px 6px; }
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
+.logo { width: 30px; height: 30px; border-radius: 8px; background: var(--accent); display: grid; place-items: center; flex: none; }
+.logo svg { width: 18px; height: 18px; }
+.brand h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: .02em; text-transform: uppercase; line-height: 1; }
+.fresh { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; margin-top: 3px; white-space: nowrap; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--win); flex: none; }
 .dot.stale { background: var(--push); }
-.dot.busy { background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
-@keyframes pulse { 50% { opacity: .3; } }
-@media (prefers-reduced-motion: reduce) { .dot.busy { animation: none; } }
-#refresh {
-  font: inherit; font-size: 13px; font-weight: 600; border: 1px solid var(--line); background: var(--surface);
-  color: var(--ink); border-radius: 8px; padding: 6px 12px; cursor: pointer;
+.dot.busy { background: var(--accent); animation: pulse 1.1s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .25; } }
+.icon-btn {
+  width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface);
+  display: grid; place-items: center; flex: none; box-shadow: var(--shadow);
 }
-#refresh:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
-#refresh:disabled { opacity: .6; cursor: default; }
-#refresh:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.fresh-status { grid-column: 1 / -1; justify-self: end; font-size: 12px; color: var(--muted); min-height: 1em; text-align: right; }
-@media (max-width: 640px) { .fresh { justify-content: start; } .fresh-status { justify-self: start; text-align: left; } }
-.board {
-  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
-  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
-}
-.board > div { padding: 16px 18px; border-left: 1px solid var(--line); min-width: 0; }
-.board > div:first-child { border-left: 0; }
-.board .v { overflow-wrap: anywhere; font-family: var(--font-display); font-size: clamp(24px, 4.4vw, 40px); font-weight: 700; line-height: 1.05; font-variant-numeric: tabular-nums; }
-.board .s { font-size: 13px; color: var(--muted); }
-.pos { color: var(--win); } .neg { color: var(--loss); }
-@media (max-width: 640px) {
-  .board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .board > div:nth-child(3) { border-left: 0; }
-  .board > div:nth-child(n+3) { border-top: 1px solid var(--line); }
-}
+.icon-btn svg { width: 20px; height: 20px; }
+.icon-btn:disabled { opacity: .7; cursor: default; }
+.icon-btn.spin svg { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .dot.busy, .icon-btn.spin svg { animation: none; } }
 
-/* Controls */
-.controls { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: end; }
-.ctl { display: grid; gap: 6px; }
-input[type="date"] {
-  font: inherit; font-size: 14px; background: var(--surface); color: var(--ink);
-  border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; min-height: 36px;
+.chips { display: flex; gap: 8px; overflow-x: auto; padding-block: 4px 10px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex: none; display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--line); background: var(--surface); border-radius: 999px;
+  padding: 6px 12px; font-size: 13px; font-weight: 500; white-space: nowrap;
 }
-.upc-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
-.sortbar { display: flex; align-items: center; gap: 8px; }
-.sortbar label { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 600; }
-#sort-dir, #lsort-dir {
-  font: inherit; font-size: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
-  border-radius: 8px; padding: 7px 10px; cursor: pointer; white-space: nowrap;
-}
-#sort-dir:focus-visible, #lsort-dir:focus-visible, th button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-th button {
-  font: inherit; text-transform: inherit; letter-spacing: inherit; color: inherit; background: none;
-  border: 0; padding: 0; cursor: pointer; display: inline-flex; gap: 4px; align-items: center;
-}
-th button:hover { color: var(--ink); }
-th button[aria-sort] { color: var(--accent); }
-.daypick { display: inline-flex; align-items: center; gap: 4px; }
-.daypick button {
-  font: inherit; font-size: 18px; width: 34px; height: 36px; border: 1px solid var(--line);
-  background: var(--surface); color: var(--ink); border-radius: 8px; cursor: pointer;
-}
-.daypick button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.ctl label, .ctl .lbl { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 600; }
-.seg { display: inline-flex; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 3px; gap: 2px; }
-.seg button {
-  font: inherit; font-size: 14px; border: 0; background: transparent; color: var(--ink);
-  padding: 6px 11px; border-radius: 6px; cursor: pointer;
-}
-.seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
-.seg button:focus-visible, select:focus-visible, input:focus-visible, .more:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-select {
-  font: inherit; font-size: 14px; background: var(--surface); color: var(--ink);
-  border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px;
-}
-.stepper { display: inline-flex; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
-.stepper button { font: inherit; border: 0; background: transparent; color: var(--ink); width: 34px; height: 34px; cursor: pointer; font-size: 18px; }
-.stepper output { min-width: 44px; text-align: center; font-family: var(--font-data); font-weight: 500; }
+.chip svg { width: 15px; height: 15px; }
+.chip.on { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+.chip .count { background: var(--accent); color: var(--accent-ink); border-radius: 999px; font-size: 11px; padding: 0 6px; font-weight: 600; }
+.status { font-size: 12px; color: var(--accent); padding-bottom: 8px; margin-top: -4px; }
 
-/* Panels */
-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; gap: 16px; min-width: 0; }
-.panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; }
-.note { font-size: 13px; color: var(--muted); max-width: 70ch; margin: 0; }
+/* Desktop tabs live in the top bar */
+.toptabs { display: none; gap: 4px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 3px; }
+.toptabs button { border: 0; background: none; padding: 7px 14px; border-radius: 9px; font-weight: 600; font-size: 14px; color: var(--muted); }
+.toptabs button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
 
-/* Win rate by moves */
-.bymoves { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 24px; }
-@media (max-width: 860px) { .bymoves { grid-template-columns: minmax(0, 1fr); } }
+/* ---------- Screens ---------- */
+main { padding-block: 16px calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 24px); }
+.screen { display: grid; gap: 22px; }
+.section { display: grid; gap: 10px; min-width: 0; }
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.sec-head h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 20px; letter-spacing: .02em; text-transform: uppercase; }
+.sec-head .muted { font-size: 13px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+.sortsel {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--muted);
+}
+.sortsel select { border: 0; background: none; font-weight: 600; color: var(--ink); padding: 4px 2px; font-size: 13px; }
+.sortsel button { border: 0; background: var(--surface-2); border-radius: 8px; width: 30px; height: 28px; font-size: 15px; color: var(--ink); }
+
+/* Plays */
+.day-label { font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 6px 2px -2px; }
+.plays { display: grid; gap: 10px; }
+@media (min-width: 700px) { .plays { grid-template-columns: repeat(2, minmax(0, 1fr)); } .plays .day-label { grid-column: 1 / -1; } }
+.play { padding: 14px 16px; display: grid; gap: 10px; }
+.play-top { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+.lg-badge { font-family: var(--font-data); font-size: 11px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; color: var(--ink); }
+.play-top .mkt { margin-left: auto; }
+.play-main { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.play-pick { font-family: var(--font-display); font-weight: 700; font-size: 26px; line-height: 1.05; letter-spacing: .01em; }
+.play-game { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.odds-pill { font-family: var(--font-data); font-size: 14px; font-weight: 500; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; flex: none; }
+.meter { display: grid; gap: 5px; }
+.meter-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--muted); }
+.meter-head b { font-family: var(--font-display); font-size: 18px; color: var(--ink); font-weight: 700; margin-right: 3px; }
+.meter-bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: var(--push-soft); gap: 2px; }
+.meter-bar i { display: block; height: 100%; }
+.meter-bar .s { background: var(--steam); }
+.meter-bar .r { background: var(--rlm); }
+.legend { display: inline-flex; gap: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 4px; }
+.legend span::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--steam); }
+.legend span.r::before { background: var(--rlm); }
+
+.empty { padding: 28px 20px; text-align: center; color: var(--muted); display: grid; gap: 6px; justify-items: center; }
+.empty strong { color: var(--ink); font-size: 16px; }
+.empty p { margin: 0; max-width: 42ch; font-size: 14px; }
+
+/* Stats */
+.kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 700px) { .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.kpi { padding: 14px 16px; min-width: 0; }
+.kpi .lbl { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.kpi .v { font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1.1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.kpi .s { font-size: 12px; color: var(--muted); }
+.stats-grid { display: grid; gap: 22px; }
+@media (min-width: 900px) { .stats-grid { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); align-items: start; } }
+.chart { padding: 14px 12px 8px; }
 .chart svg { width: 100%; height: auto; display: block; }
 .chart text { fill: var(--muted); font-family: var(--font-data); font-size: 11px; }
 .chart .bar { fill: var(--accent); }
-.chart .bar.below { fill: var(--loss); opacity: .8; }
-.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .bar.below { fill: var(--loss); opacity: .85; }
+.chart .grid { stroke: var(--line); }
 .chart .be { stroke: var(--ink); stroke-dasharray: 4 4; stroke-width: 1.2; }
-.chart .be-label { fill: var(--ink); }
+.list { overflow: hidden; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 11px 16px; border-top: 1px solid var(--line); }
+.row:first-child { border-top: 0; }
+.row .name { font-weight: 600; }
+.row .sub { font-size: 12px; color: var(--muted); }
+.row .right { text-align: right; }
+.row .rate { font-family: var(--font-data); font-weight: 500; }
+.ratebar { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--push-soft); overflow: hidden; position: relative; }
+.ratebar i { display: block; height: 100%; background: var(--accent); }
+.ratebar i.below { background: var(--loss); }
+.ratebar::after { content: ""; position: absolute; left: 52.4%; top: -2px; bottom: -2px; width: 1px; background: var(--ink); opacity: .5; }
+.note { font-size: 13px; color: var(--muted); margin: 0; padding: 0 2px; }
 
-.tbl-wrap { overflow-x: auto; min-width: 0; }
-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
-td { padding: 9px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
-td.r, th.r { text-align: right; }
-tr.total td { font-weight: 600; border-bottom: 0; border-top: 2px solid var(--ink); }
-.rate-cell { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
-.minibar { width: 60px; height: 6px; background: var(--push-soft); border-radius: 3px; overflow: hidden; }
-.minibar i { display: block; height: 100%; background: var(--accent); }
+/* History */
+.hist { display: grid; gap: 14px; }
+.hday { overflow: hidden; }
+.hday-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 10px 16px; background: var(--surface-2); border-bottom: 1px solid var(--line); font-size: 13px; }
+.hday-head b { font-weight: 600; }
+.bet { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; padding: 11px 16px; border-top: 1px solid var(--line); }
+.hday-head + .bet { border-top: 0; }
+.res { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-family: var(--font-data); font-weight: 500; font-size: 13px; grid-row: span 2; }
+.res.W { background: var(--win-soft); color: var(--win); }
+.res.L { background: var(--loss-soft); color: var(--loss); }
+.res.P { background: var(--push-soft); color: var(--push); }
+.bet .pick { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bet .meta { font-size: 12px; color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bet .u { font-family: var(--font-data); font-weight: 500; text-align: right; }
+.bet .score { font-family: var(--font-data); font-size: 12px; color: var(--muted); text-align: right; }
+.more { justify-self: center; border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 10px 18px; font-weight: 600; font-size: 14px; }
 
-.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
-@media (max-width: 760px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
-
-/* Bet log */
-.chip { display: inline-block; min-width: 26px; text-align: center; font-family: var(--font-data); font-size: 12px; font-weight: 500; padding: 2px 7px; border-radius: 5px; }
-.chip.W { background: var(--win-soft); color: var(--win); }
-.chip.L { background: var(--loss-soft); color: var(--loss); }
-.chip.P { background: var(--push-soft); color: var(--push); }
-.chip.U { background: var(--accent-soft); color: var(--accent); }
-.lg { font-family: var(--font-data); font-size: 12px; color: var(--muted); text-transform: uppercase; }
-.moves { font-family: var(--font-data); font-weight: 500; }
-.moves small { color: var(--muted); font-weight: 400; }
-.more { font: inherit; font-size: 14px; justify-self: center; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 8px 16px; cursor: pointer; }
-.empty { padding: 28px; text-align: center; color: var(--muted); }
-footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
+footer { font-size: 12px; color: var(--muted); display: grid; gap: 4px; padding-top: 8px; }
 footer p { margin: 0; max-width: 80ch; }
+
+/* ---------- Bottom tab bar ---------- */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  background: var(--bar-bg); backdrop-filter: saturate(1.6) blur(14px); -webkit-backdrop-filter: saturate(1.6) blur(14px);
+  border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px);
+}
+.tabbar .inner { display: grid; grid-template-columns: repeat(3, 1fr); height: var(--tabbar-h); }
+.tabbar button { border: 0; background: none; display: grid; justify-items: center; align-content: center; gap: 3px; font-size: 11px; font-weight: 600; color: var(--muted); position: relative; }
+.tabbar svg { width: 23px; height: 23px; }
+.tabbar button[aria-selected="true"] { color: var(--accent); }
+.tabbar .badge { position: absolute; top: 7px; left: calc(50% + 8px); background: var(--accent); color: var(--accent-ink); font-size: 10px; border-radius: 999px; padding: 0 5px; line-height: 16px; min-width: 16px; text-align: center; }
+
+@media (min-width: 900px) {
+  .tabbar { display: none; }
+  .toptabs { display: inline-flex; }
+  main { padding-bottom: 48px; }
+}
+
+/* ---------- Filter sheet ---------- */
+dialog.sheet {
+  border: 0; padding: 0; margin: auto auto 0; width: 100%; max-width: 560px;
+  background: var(--surface); color: var(--ink);
+  border-radius: 20px 20px 0 0; max-height: 88vh; max-height: 88dvh;
+}
+dialog.sheet::backdrop { background: rgba(8, 12, 18, .45); }
+@media (min-width: 700px) { dialog.sheet { margin: auto; border-radius: 20px; } }
+.sheet-in { display: grid; gap: 18px; padding: 10px 20px calc(20px + env(safe-area-inset-bottom, 0px)); overflow-y: auto; max-height: inherit; }
+.grabber { width: 40px; height: 5px; border-radius: 3px; background: var(--line); justify-self: center; }
+.sheet-head { display: flex; justify-content: space-between; align-items: center; }
+.sheet-head h2 { margin: 0; font-family: var(--font-display); font-size: 22px; text-transform: uppercase; letter-spacing: .02em; }
+.link-btn { border: 0; background: none; color: var(--accent); font-weight: 600; font-size: 14px; padding: 6px 0; }
+.field { display: grid; gap: 8px; }
+.field > .lbl, .field > label { font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 7px 14px; font-size: 14px; font-weight: 500; }
+.seg button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 12px; width: max-content; }
+.stepper button { border: 0; background: none; width: 44px; height: 42px; font-size: 20px; }
+.stepper output { min-width: 56px; text-align: center; font-family: var(--font-data); font-weight: 500; font-size: 16px; }
+select.input, input.input { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 9px 12px; font-size: 15px; min-height: 42px; }
+.daypick { display: flex; gap: 6px; align-items: center; }
+.daypick button { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; width: 42px; height: 42px; font-size: 20px; flex: none; }
+.daypick input { flex: 1; min-width: 0; }
+.range { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.range label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+.done { border: 0; background: var(--accent); color: var(--accent-ink); border-radius: 14px; padding: 13px; font-weight: 600; font-size: 16px; }
 </style>
 </head>
 <body>
 
-<div class="wrap">
-  <header>
-    <div class="head-top">
-      <div>
-        <div class="eyebrow">Action Network PRO · sharp money signals</div>
-        <h1>Sharp Move Tracker</h1>
+<header class="appbar">
+  <div class="gutter"><div class="inner">
+    <div class="appbar-row">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l5-6 4 3 7-8"/></svg></div>
+        <div>
+          <h1>Sharp Tracker</h1>
+          <div class="fresh"><span class="dot" id="fresh-dot" aria-hidden="true"></span><span id="updated">Loading…</span></div>
+        </div>
       </div>
-      <div class="fresh">
-        <div class="updated"><span class="dot" id="fresh-dot" aria-hidden="true"></span><span id="updated">Loading bets…</span></div>
-        <button type="button" id="refresh">Refresh</button>
-        <div class="fresh-status" id="fresh-status" role="status" aria-live="polite"></div>
-      </div>
+      <nav class="toptabs" role="tablist" aria-label="Screens" id="toptabs"></nav>
+      <button type="button" class="icon-btn" id="refresh" aria-label="Refresh data">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 20v-4h-4"/></svg>
+      </button>
     </div>
-    <div class="board" id="board">
-      <div><div class="eyebrow">Record</div><div class="v" id="b-rec">–</div><div class="s" id="b-n">&nbsp;</div></div>
-      <div><div class="eyebrow">Win rate</div><div class="v" id="b-wr">–</div><div class="s">Pushes excluded · 52.4% breaks even at −110</div></div>
-      <div><div class="eyebrow">Units</div><div class="v" id="b-u">–</div><div class="s">1 unit per bet at listed odds</div></div>
-      <div><div class="eyebrow">ROI</div><div class="v" id="b-roi">–</div><div class="s" id="b-pend">&nbsp;</div></div>
-    </div>
-  </header>
+    <div class="chips" id="chips"></div>
+    <div class="status" id="fresh-status" role="status" aria-live="polite" hidden></div>
+  </div></div>
+</header>
 
-  <section class="controls" aria-label="Filters">
-    <div class="ctl">
+<main class="gutter">
+  <div class="inner">
+
+    <!-- PLAYS -->
+    <section class="screen" id="screen-plays" role="tabpanel" aria-labelledby="tab-plays">
+      <div class="section">
+        <div class="sec-head">
+          <h2>Upcoming plays</h2>
+          <div class="sortsel">
+            <label for="sel-sort">Sort</label>
+            <select id="sel-sort">
+              <option value="t">Start time</option>
+              <option value="moves">Sharp moves</option>
+              <option value="steam">Steam moves</option>
+              <option value="rlm">Reverse line moves</option>
+              <option value="odds">Odds</option>
+              <option value="lg">Sport</option>
+              <option value="m">Bet type</option>
+              <option value="game">Game</option>
+            </select>
+            <button type="button" id="sort-dir" aria-label="Flip sort direction">↑</button>
+          </div>
+        </div>
+        <div class="muted" id="plays-sub" style="font-size:13px"></div>
+        <div class="plays" id="plays"></div>
+      </div>
+    </section>
+
+    <!-- STATS -->
+    <section class="screen" id="screen-stats" role="tabpanel" aria-labelledby="tab-stats" hidden>
+      <div class="kpis">
+        <div class="card kpi"><div class="lbl">Record</div><div class="v" id="k-rec">–</div><div class="s" id="k-n">&nbsp;</div></div>
+        <div class="card kpi"><div class="lbl">Win rate</div><div class="v" id="k-wr">–</div><div class="s">52.4% breaks even</div></div>
+        <div class="card kpi"><div class="lbl">Units</div><div class="v" id="k-u">–</div><div class="s">1u per bet</div></div>
+        <div class="card kpi"><div class="lbl">ROI</div><div class="v" id="k-roi">–</div><div class="s">per unit risked</div></div>
+      </div>
+      <div class="stats-grid">
+        <div class="section">
+          <div class="sec-head"><h2>By sharp moves</h2><span class="muted">Dashed = break-even</span></div>
+          <div class="card chart" id="chart"></div>
+          <div class="card list" id="moves-list"></div>
+          <p class="note" id="moves-note"></p>
+        </div>
+        <div class="screen">
+          <div class="section">
+            <div class="sec-head"><h2>By sport</h2></div>
+            <div class="card list" id="lg-list"></div>
+          </div>
+          <div class="section">
+            <div class="sec-head"><h2>By bet type</h2></div>
+            <div class="card list" id="m-list"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HISTORY -->
+    <section class="screen" id="screen-history" role="tabpanel" aria-labelledby="tab-history" hidden>
+      <div class="section">
+        <div class="sec-head">
+          <h2>Graded bets</h2>
+          <div class="sortsel">
+            <label for="sel-lsort">Sort</label>
+            <select id="sel-lsort">
+              <option value="t">Date</option>
+              <option value="r">Result</option>
+              <option value="units">Units won/lost</option>
+              <option value="moves">Sharp moves</option>
+              <option value="steam">Steam moves</option>
+              <option value="rlm">Reverse line moves</option>
+              <option value="odds">Odds</option>
+              <option value="lg">Sport</option>
+              <option value="m">Bet type</option>
+              <option value="game">Game</option>
+            </select>
+            <button type="button" id="lsort-dir" aria-label="Flip sort direction">↓</button>
+          </div>
+        </div>
+        <div class="muted" id="hist-sub" style="font-size:13px"></div>
+        <div class="hist" id="hist"></div>
+        <button type="button" class="more" id="more" hidden>Show 100 more</button>
+      </div>
+    </section>
+
+    <footer>
+      <p>Each bet is a market where Action Network PRO tracked sharp money with 5+ sharp moves (steam + reverse line moves). Graded at the consensus closing line, 1 unit risked. Updates every 5 minutes.</p>
+      <p>Tracking only. Past results don't predict future ones.</p>
+    </footer>
+  </div>
+</main>
+
+<nav class="tabbar" role="tablist" aria-label="Screens">
+  <div class="inner" id="tabbar"></div>
+</nav>
+
+<dialog class="sheet" id="sheet" aria-labelledby="sheet-title">
+  <div class="sheet-in">
+    <div class="grabber" aria-hidden="true"></div>
+    <div class="sheet-head">
+      <h2 id="sheet-title">Filters</h2>
+      <button type="button" class="link-btn" id="reset">Reset</button>
+    </div>
+    <div class="field">
       <span class="lbl" id="lbl-min">Minimum sharp moves</span>
       <div class="stepper" role="group" aria-labelledby="lbl-min">
         <button type="button" id="min-dn" aria-label="Fewer">−</button>
@@ -219,17 +398,11 @@ footer p { margin: 0; max-width: 80ch; }
         <button type="button" id="min-up" aria-label="More">+</button>
       </div>
     </div>
-    <div class="ctl">
-      <span class="lbl">Sport</span>
-      <div class="seg" id="seg-lg"></div>
-    </div>
-    <div class="ctl">
-      <span class="lbl">Bet type</span>
-      <div class="seg" id="seg-m"></div>
-    </div>
-    <div class="ctl">
+    <div class="field"><span class="lbl">Sport</span><div class="seg" id="seg-lg"></div></div>
+    <div class="field"><span class="lbl">Bet type</span><div class="seg" id="seg-m"></div></div>
+    <div class="field">
       <label for="sel-range">Dates</label>
-      <select id="sel-range">
+      <select id="sel-range" class="input">
         <option value="all">All dates</option>
         <option value="today">Today</option>
         <option value="yesterday">Yesterday</option>
@@ -239,114 +412,43 @@ footer p { margin: 0; max-width: 80ch; }
         <option value="day">Specific date…</option>
         <option value="custom">Date range…</option>
       </select>
-    </div>
-    <div class="ctl" id="ctl-day" hidden>
-      <span class="lbl" id="lbl-day">Date</span>
-      <div class="daypick" role="group" aria-labelledby="lbl-day">
+      <div class="daypick" id="ctl-day" hidden>
         <button type="button" id="day-prev" aria-label="Previous day">‹</button>
-        <input type="date" id="in-day" aria-label="Date">
+        <input type="date" id="in-day" class="input" aria-label="Date">
         <button type="button" id="day-next" aria-label="Next day">›</button>
       </div>
-    </div>
-    <div class="ctl" id="ctl-from" hidden>
-      <label for="in-from">From</label>
-      <input type="date" id="in-from">
-    </div>
-    <div class="ctl" id="ctl-to" hidden>
-      <label for="in-to">To</label>
-      <input type="date" id="in-to">
-    </div>
-  </section>
-
-  <section class="panel" id="today-panel" hidden>
-    <div class="panel-head">
-      <div class="upc-title">
-        <h2>Upcoming plays</h2>
-        <span class="muted" id="today-n"></span>
-      </div>
-      <div class="sortbar">
-        <label for="sel-sort">Sort by</label>
-        <select id="sel-sort">
-          <option value="t">Start time</option>
-          <option value="moves">Sharp moves</option>
-          <option value="steam">Steam moves</option>
-          <option value="rlm">Reverse line moves</option>
-          <option value="odds">Odds</option>
-          <option value="lg">Sport</option>
-          <option value="m">Bet type</option>
-          <option value="game">Game</option>
-        </select>
-        <button type="button" id="sort-dir" aria-label="Toggle sort direction"></button>
+      <div class="range" id="ctl-range" hidden>
+        <label>From<input type="date" id="in-from" class="input"></label>
+        <label>To<input type="date" id="in-to" class="input"></label>
       </div>
     </div>
-    <div class="tbl-wrap"><table id="today-tbl"></table></div>
-  </section>
-
-  <section class="panel">
-    <div class="panel-head">
-      <h2>Win rate by exact sharp move count</h2>
-      <span class="muted">Dashed line = 52.4% break-even</span>
-    </div>
-    <div class="bymoves">
-      <div class="chart" id="chart"></div>
-      <div class="tbl-wrap"><table id="moves-tbl"></table></div>
-    </div>
-    <p class="note" id="moves-note"></p>
-  </section>
-
-  <section class="grid2">
-    <div class="panel">
-      <h2>By sport</h2>
-      <div class="tbl-wrap"><table id="lg-tbl"></table></div>
-    </div>
-    <div class="panel">
-      <h2>By bet type</h2>
-      <div class="tbl-wrap"><table id="m-tbl"></table></div>
-    </div>
-  </section>
-
-  <section class="panel">
-    <div class="panel-head">
-      <div class="upc-title">
-        <h2>Every graded bet</h2>
-        <span class="muted" id="log-n"></span>
-      </div>
-      <div class="sortbar">
-        <label for="sel-lsort">Sort by</label>
-        <select id="sel-lsort">
-          <option value="t">Date</option>
-          <option value="r">Result</option>
-          <option value="units">Units won/lost</option>
-          <option value="moves">Sharp moves</option>
-          <option value="steam">Steam moves</option>
-          <option value="rlm">Reverse line moves</option>
-          <option value="odds">Odds</option>
-          <option value="lg">Sport</option>
-          <option value="m">Bet type</option>
-          <option value="game">Game</option>
-        </select>
-        <button type="button" id="lsort-dir" aria-label="Toggle sort direction"></button>
-      </div>
-    </div>
-    <div class="tbl-wrap"><table id="log-tbl"></table></div>
-    <button type="button" class="more" id="more" hidden>Show 100 more</button>
-  </section>
-
-  <footer>
-    <p>Each row is a market where Action Network PRO tracked sharp money on one side. Sharp moves are the steam moves plus reverse line moves it recorded on that side. Bets are graded at the consensus closing line with 1 unit risked.</p>
-    <p>Tracking only. Past results don't predict future ones.</p>
-  </footer>
-</div>
+    <button type="button" class="done" id="done">Show results</button>
+  </div>
+</dialog>
 
 <script>
 const LEAGUES = [['all','All'],['mlb','MLB'],['nfl','NFL'],['ncaaf','NCAAF'],['nba','NBA'],['nhl','NHL'],['ncaab','NCAAB']];
 const MARKETS = [['all','All'],['spread','Spread'],['total','Total'],['moneyline','Moneyline']];
 const MNAME = { spread: 'Spread', total: 'Total', moneyline: 'Moneyline' };
-const state = { min: 5, lg: 'all', m: 'all', range: 'all', shown: 100, sort: 't', dir: 'asc', lsort: 't', ldir: 'desc' };
+const RANGE_NAME = { all: 'All dates', today: 'Today', yesterday: 'Yesterday', 7: 'Last 7 days', 30: 'Last 30 days', 90: 'Last 90 days' };
+const TABS = [
+  ['plays', 'Plays', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg>'],
+  ['stats', 'Stats', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V11M12 20V4M19 20v-6"/></svg>'],
+  ['history', 'History', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>'],
+];
+const DEFAULTS = { min: 5, lg: 'all', m: 'all', range: 'all', day: null, from: '', to: '' };
+const state = { ...DEFAULTS, tab: 'plays', shown: 100, sort: 't', dir: 'asc', lsort: 't', ldir: 'desc' };
 let ROWS = [];
 
 try { Object.assign(state, JSON.parse(localStorage.getItem('smt-state') || '{}'), { shown: 100 }); } catch (e) {}
-const save = () => { try { localStorage.setItem('smt-state', JSON.stringify({ min: state.min, lg: state.lg, m: state.m, range: state.range, day: state.day, from: state.from, to: state.to, sort: state.sort, dir: state.dir, lsort: state.lsort, ldir: state.ldir })); } catch (e) {} };
+const hashTab = location.hash.slice(1);
+if (TABS.some(([k]) => k === hashTab)) state.tab = hashTab;
+const save = () => {
+  try {
+    const { min, lg, m, range, day, from, to, tab, sort, dir, lsort, ldir } = state;
+    localStorage.setItem('smt-state', JSON.stringify({ min, lg, m, range, day, from, to, tab, sort, dir, lsort, ldir }));
+  } catch (e) {}
+};
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -355,33 +457,38 @@ const profit = (r) => r.r === 'W' ? (r.odds > 0 ? r.odds / 100 : 100 / -r.odds) 
 const pct = (x) => x == null ? '–' : (x * 100).toFixed(1) + '%';
 const units = (u) => (u > 0 ? '+' : u < 0 ? '−' : '') + Math.abs(u).toFixed(2) + 'u';
 const odds = (o) => o == null ? '' : o > 0 ? '+' + o : String(o);
+const sgnClass = (u) => (u > 0 ? 'pos' : u < 0 ? 'neg' : '');
 
 function pickLabel(r) {
   if (r.m === 'total') return (r.s === 'over' ? 'Over ' : 'Under ') + r.line;
   if (r.m === 'moneyline') return r.pick + ' ML';
   return r.pick + ' ' + (r.line > 0 ? '+' + r.line : r.line);
 }
-function fmtDate(t, withTime) {
-  const d = new Date(t);
-  const o = withTime ? { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' } : { month: 'short', day: 'numeric' };
-  return d.toLocaleString(undefined, o);
-}
+const fmtTime = (t) => new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+const fmtDay = (t) => new Date(t).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+
 function agg(rows) {
   let w = 0, l = 0, p = 0, u = 0;
   for (const r of rows) { if (r.r === 'W') w++; else if (r.r === 'L') l++; else if (r.r === 'P') p++; u += profit(r); }
   const n = w + l + p;
   return { w, l, p, n, u, wr: w + l ? w / (w + l) : null, roi: n ? u / n : null };
 }
-const rec = (a) => `${a.w}W–${a.l}L${a.p ? '–' + a.p + 'P' : ''}`;
+const rec = (a) => `${a.w}–${a.l}${a.p ? '–' + a.p : ''}`;
 
-// Dates are the game's start day in the viewer's own time zone, as YYYY-MM-DD.
+// ---- Dates: the game's start day in the viewer's own time zone ----
 const pad = (n) => String(n).padStart(2, '0');
 const isoDay = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const localDay = (t) => isoDay(new Date(t));
 const shiftDay = (s, n) => { const [y, m, d] = s.split('-').map(Number); return isoDay(new Date(y, m - 1, d + n)); };
 const today = () => isoDay(new Date());
-
-// Returns [first day, last day] for the selected range; null means open-ended.
+function dayName(iso) {
+  const t = today();
+  if (iso === t) return 'Today';
+  if (iso === shiftDay(t, 1)) return 'Tomorrow';
+  if (iso === shiftDay(t, -1)) return 'Yesterday';
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+}
 function dayBounds() {
   const t = today();
   switch (state.range) {
@@ -389,56 +496,18 @@ function dayBounds() {
     case 'yesterday': { const y = shiftDay(t, -1); return [y, y]; }
     case '7': case '30': case '90': return [shiftDay(t, -(+state.range - 1)), null];
     case 'day': return [state.day, state.day];
-    case 'custom': {
-      const a = state.from || null, b = state.to || null;
-      return a && b && a > b ? [b, a] : [a, b];
-    }
+    case 'custom': { const a = state.from || null, b = state.to || null; return a && b && a > b ? [b, a] : [a, b]; }
     default: return [null, null];
   }
 }
-
-const SORT_KEYS = {
-  t: (r) => r.t,
-  moves: (r) => moves(r),
-  steam: (r) => r.steam,
-  rlm: (r) => r.rlm,
-  odds: (r) => r.odds ?? 0,
-  lg: (r) => r.lg,
-  m: (r) => r.m,
-  game: (r) => `${r.a} @ ${r.h}`,
-  r: (r) => ({ W: 2, P: 1, L: 0 })[r.r] ?? -1,
-  units: (r) => profit(r),
-};
-const cmp = (a, b) => (typeof a === 'number' && typeof b === 'number' ? a - b : String(a).localeCompare(String(b)));
-// Counts, results and units read best biggest-first; text reads best A→Z.
-const DEFAULT_DIR = { moves: 'desc', steam: 'desc', rlm: 'desc', r: 'desc', units: 'desc' };
-// Each table keeps its own sort: upcoming defaults to soonest first, the log to newest first.
-const TABLES = {
-  up: { k: 'sort', d: 'dir', tbl: 'today-tbl', sel: 'sel-sort', btn: 'sort-dir', time: 'asc' },
-  log: { k: 'lsort', d: 'ldir', tbl: 'log-tbl', sel: 'sel-lsort', btn: 'lsort-dir', time: 'desc' },
-};
-function setSort(name, k, toggle) {
-  const T = TABLES[name];
-  if (toggle && state[T.k] === k) state[T.d] = state[T.d] === 'asc' ? 'desc' : 'asc';
-  else { state[T.k] = k; state[T.d] = k === 't' ? T.time : DEFAULT_DIR[k] || 'asc'; }
-  if (name === 'log') state.shown = 100;
-  save(); render();
-}
-function sortRows(name, rows) {
-  const T = TABLES[name];
-  const key = SORT_KEYS[state[T.k]] || SORT_KEYS.t;
-  const sign = state[T.d] === 'desc' ? -1 : 1;
-  // Ties fall back to start time (in the table's natural order) so the order stays stable.
-  const tie = T.time === 'desc' ? -1 : 1;
-  $(T.sel).value = state[T.k];
-  $(T.btn).textContent = state[T.d] === 'asc' ? '↑ Ascending' : '↓ Descending';
-  return rows.slice().sort((x, y) => sign * cmp(key(x), key(y)) || tie * x.t.localeCompare(y.t));
-}
-function sortTh(name, k, label, cls = '') {
-  const T = TABLES[name];
-  const on = state[T.k] === k;
-  const asc = state[T.d] === 'asc';
-  return `<th class="${cls}"><button type="button" data-sort="${k}"${on ? ` aria-sort="${asc ? 'ascending' : 'descending'}"` : ''}>${label}${on ? (asc ? ' ↑' : ' ↓') : ''}</button></th>`;
+function rangeLabel() {
+  if (state.range === 'day') return dayName(state.day);
+  if (state.range === 'custom') {
+    const [a, b] = dayBounds();
+    const f = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); };
+    return a && b ? `${f(a)} – ${f(b)}` : a ? `From ${f(a)}` : b ? `Until ${f(b)}` : 'All dates';
+  }
+  return RANGE_NAME[state.range] || 'All dates';
 }
 
 function filtered() {
@@ -451,127 +520,258 @@ function filtered() {
     (!hi || localDay(r.t) <= hi));
 }
 
-function seg(el, opts, key) {
-  el.innerHTML = opts.map(([v, t]) => `<button type="button" data-v="${v}" aria-pressed="${state[key] === v}">${t}</button>`).join('');
-  el.onclick = (e) => { const b = e.target.closest('button'); if (!b) return; state[key] = b.dataset.v; state.shown = 100; save(); render(); };
+// ---- Sorting (each list keeps its own) ----
+const SORT_KEYS = {
+  t: (r) => r.t, moves: (r) => moves(r), steam: (r) => r.steam, rlm: (r) => r.rlm, odds: (r) => r.odds ?? 0,
+  lg: (r) => r.lg, m: (r) => r.m, game: (r) => `${r.a} @ ${r.h}`,
+  r: (r) => ({ W: 2, P: 1, L: 0 })[r.r] ?? -1, units: (r) => profit(r),
+};
+const cmp = (a, b) => (typeof a === 'number' && typeof b === 'number' ? a - b : String(a).localeCompare(String(b)));
+const DEFAULT_DIR = { moves: 'desc', steam: 'desc', rlm: 'desc', r: 'desc', units: 'desc' };
+const LISTS = {
+  up: { k: 'sort', d: 'dir', sel: 'sel-sort', btn: 'sort-dir', time: 'asc' },
+  log: { k: 'lsort', d: 'ldir', sel: 'sel-lsort', btn: 'lsort-dir', time: 'desc' },
+};
+function sortRows(name, rows) {
+  const L = LISTS[name];
+  const key = SORT_KEYS[state[L.k]] || SORT_KEYS.t;
+  const sign = state[L.d] === 'desc' ? -1 : 1;
+  const tie = L.time === 'desc' ? -1 : 1;
+  $(L.sel).value = state[L.k];
+  $(L.btn).textContent = state[L.d] === 'asc' ? '↑' : '↓';
+  $(L.btn).setAttribute('aria-label', state[L.d] === 'asc' ? 'Ascending. Switch to descending' : 'Descending. Switch to ascending');
+  return rows.slice().sort((x, y) => sign * cmp(key(x), key(y)) || tie * x.t.localeCompare(y.t));
+}
+function setSort(name, k, flip) {
+  const L = LISTS[name];
+  if (flip) state[L.d] = state[L.d] === 'asc' ? 'desc' : 'asc';
+  else { state[L.k] = k; state[L.d] = k === 't' ? L.time : DEFAULT_DIR[k] || 'asc'; }
+  if (name === 'log') state.shown = 100;
+  save(); render();
 }
 
-function breakdownTable(el, groups, label) {
-  const body = groups.filter(([, rows]) => rows.length).map(([name, rows]) => {
-    const a = agg(rows);
-    return `<tr><td>${esc(name)}</td><td class="num">${rec(a)}</td><td class="r num">${pct(a.wr)}</td><td class="r num ${a.u >= 0 ? 'pos' : 'neg'}">${units(a.u)}</td></tr>`;
-  }).join('');
-  el.innerHTML = `<thead><tr><th>${label}</th><th>Record</th><th class="r">Win rate</th><th class="r">Units</th></tr></thead><tbody>${body || '<tr><td colspan="4" class="empty">No graded bets</td></tr>'}</tbody>`;
+// ---- Rendering ----
+function renderTabs() {
+  const btn = (k, label, icon, top) => `<button type="button" role="tab" id="tab-${top ? 'top-' : ''}${k}" data-tab="${k}" aria-selected="${state.tab === k}" aria-controls="screen-${k}">${top ? '' : icon}<span>${label}</span>${!top && k === 'plays' ? '<span class="badge" id="plays-badge" hidden></span>' : ''}</button>`;
+  $('tabbar').innerHTML = TABS.map(([k, l, i]) => btn(k, l, i, false)).join('');
+  $('toptabs').innerHTML = TABS.map(([k, l, i]) => btn(k, l, i, true)).join('');
+  for (const [k] of TABS) $('screen-' + k).hidden = state.tab !== k;
+  paintBadge();
+}
+let playCount = 0;
+function paintBadge() {
+  const b = $('plays-badge');
+  if (b) { b.hidden = !playCount; b.textContent = playCount > 99 ? '99+' : playCount; }
+}
+
+function renderChips() {
+  const active = (state.min !== 5) + (state.lg !== 'all') + (state.m !== 'all') + (state.range !== 'all');
+  const filterIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>';
+  const chip = (label, on) => `<button type="button" class="chip${on ? ' on' : ''}" data-open>${label}</button>`;
+  $('chips').innerHTML =
+    `<button type="button" class="chip${active ? ' on' : ''}" data-open>${filterIcon}Filters${active ? ` <span class="count">${active}</span>` : ''}</button>` +
+    chip(`${state.min}+ moves`, state.min !== 5) +
+    chip(state.lg === 'all' ? 'All sports' : LEAGUES.find(([v]) => v === state.lg)[1], state.lg !== 'all') +
+    chip(state.m === 'all' ? 'All bet types' : MNAME[state.m], state.m !== 'all') +
+    chip(rangeLabel(), state.range !== 'all');
+}
+
+function meter(r) {
+  const n = moves(r);
+  return `<div class="meter">
+    <div class="meter-head"><span><b>${n}</b>sharp moves</span><span class="legend"><span>${r.steam} steam</span><span class="r">${r.rlm} reverse</span></span></div>
+    <div class="meter-bar" aria-hidden="true"><i class="s" style="flex:${r.steam}"></i><i class="r" style="flex:${r.rlm}"></i><i style="flex:${Math.max(0, 20 - n)}"></i></div>
+  </div>`;
+}
+function playCard(r) {
+  return `<article class="card play">
+    <div class="play-top"><span class="lg-badge">${r.lg}</span><span>${fmtTime(r.t)}</span><span class="mkt">${MNAME[r.m]}</span></div>
+    <div class="play-main">
+      <div style="min-width:0"><div class="play-pick">${esc(pickLabel(r))}</div><div class="play-game">${esc(r.a)} @ ${esc(r.h)}</div></div>
+      <div class="odds-pill">${odds(r.odds)}</div>
+    </div>
+    ${meter(r)}
+  </article>`;
+}
+
+function renderPlays(pending) {
+  const up = sortRows('up', pending);
+  playCount = up.length;
+  paintBadge();
+  if (!up.length) {
+    $('plays-sub').textContent = '';
+    $('plays').innerHTML = `<div class="card empty" style="grid-column:1/-1"><strong>No plays with ${state.min}+ sharp moves right now</strong><p>New plays show up as sharp money comes in, usually the day before and the day of a game. This checks every 5 minutes.</p></div>`;
+    return;
+  }
+  const next = up.slice().sort((a, b) => a.t.localeCompare(b.t))[0];
+  $('plays-sub').textContent = `${up.length} play${up.length === 1 ? '' : 's'} · next starts ${dayName(localDay(next.t)).toLowerCase() === 'today' ? 'at' : dayName(localDay(next.t))} ${fmtTime(next.t)}`;
+  if (state.sort === 't') {
+    let html = '', last = '';
+    for (const r of up) {
+      const d = localDay(r.t);
+      if (d !== last) { html += `<div class="day-label">${dayName(d)}</div>`; last = d; }
+      html += playCard(r);
+    }
+    $('plays').innerHTML = html;
+  } else {
+    $('plays').innerHTML = up.map(playCard).join('');
+  }
 }
 
 function drawChart(buckets) {
   const el = $('chart');
   const data = buckets.filter((b) => b.a.w + b.a.l > 0);
-  if (!data.length) { el.innerHTML = '<div class="empty">No graded bets match these filters yet.</div>'; return; }
-  const W = 560, H = 260, L = 40, R = 10, T = 14, B = 44;
-  const iw = W - L - R, ih = H - T - B;
-  const bw = iw / data.length;
+  if (!data.length) { el.innerHTML = '<div class="empty"><p>No graded bets match these filters yet.</p></div>'; return; }
+  const W = 560, H = 230, L = 38, R = 8, T = 10, B = 40;
+  const iw = W - L - R, ih = H - T - B, bw = iw / data.length;
   const y = (v) => T + ih - v * ih;
   let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Win rate by sharp move count">`;
   for (const g of [0, .25, .5, .75, 1]) s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(g)}" y2="${y(g)}"/><text x="${L - 6}" y="${y(g) + 4}" text-anchor="end">${g * 100}%</text>`;
   data.forEach((b, i) => {
-    const h = b.a.wr * ih, x = L + i * bw + bw * .15, w = bw * .7;
-    s += `<rect class="bar${b.a.wr < .524 ? ' below' : ''}" x="${x}" y="${y(b.a.wr)}" width="${w}" height="${Math.max(h, 1)}" rx="2"><title>${b.label} moves: ${rec(b.a)} (${pct(b.a.wr)})</title></rect>`;
-    if (data.length <= 24 || i % 2 === 0) s += `<text x="${x + w / 2}" y="${H - B + 16}" text-anchor="middle">${b.label}</text>`;
-    if (data.length <= 16) s += `<text x="${x + w / 2}" y="${H - B + 30}" text-anchor="middle">n=${b.a.w + b.a.l}</text>`;
+    const x = L + i * bw + bw * .16, w = bw * .68;
+    s += `<rect class="bar${b.a.wr < .524 ? ' below' : ''}" x="${x}" y="${y(b.a.wr)}" width="${w}" height="${Math.max(b.a.wr * ih, 1)}" rx="3"><title>${b.label} moves: ${rec(b.a)} (${pct(b.a.wr)})</title></rect>`;
+    if (data.length <= 24 || i % 2 === 0) s += `<text x="${x + w / 2}" y="${H - B + 15}" text-anchor="middle">${b.label}</text>`;
+    if (data.length <= 14) s += `<text x="${x + w / 2}" y="${H - B + 29}" text-anchor="middle">n${b.a.w + b.a.l}</text>`;
   });
-  s += `<line class="be" x1="${L}" x2="${W - R}" y1="${y(.524)}" y2="${y(.524)}"/>`;
-  s += `<text x="${L + iw / 2}" y="${H - 2}" text-anchor="middle">sharp moves</text></svg>`;
+  s += `<line class="be" x1="${L}" x2="${W - R}" y1="${y(.524)}" y2="${y(.524)}"/></svg>`;
   el.innerHTML = s;
 }
-
-function render() {
-  seg($('seg-lg'), LEAGUES, 'lg');
-  seg($('seg-m'), MARKETS, 'm');
-  $('min-out').textContent = state.min + '+';
-  $('sel-range').value = state.range;
-  if (!state.day) state.day = shiftDay(today(), -1);
-  $('ctl-day').hidden = state.range !== 'day';
-  $('ctl-from').hidden = $('ctl-to').hidden = state.range !== 'custom';
-  $('in-day').value = state.day;
-  $('in-from').value = state.from || '';
-  $('in-to').value = state.to || '';
-
-  const all = filtered();
-  const graded = all.filter((r) => r.r);
-  // Ungraded games that started more than 12 hours ago were postponed or canceled.
-  const pending = all.filter((r) => !r.r && r.st !== 'complete' && new Date(r.t).getTime() > Date.now() - 12 * 36e5);
+function statRow(name, sub, a) {
+  return `<div class="row">
+    <div><div class="name">${esc(name)}</div><div class="sub">${rec(a)}${sub ? ' · ' + sub : ''}</div></div>
+    <div class="right"><div class="rate">${pct(a.wr)}</div><div class="sub ${sgnClass(a.u)}">${units(a.u)}</div></div>
+    <div class="ratebar" aria-hidden="true"><i class="${a.wr != null && a.wr < .524 ? 'below' : ''}" style="width:${(a.wr || 0) * 100}%"></i></div>
+  </div>`;
+}
+function renderStats(graded) {
   const a = agg(graded);
+  $('k-rec').textContent = rec(a);
+  $('k-n').textContent = `${a.n.toLocaleString()} graded bets`;
+  $('k-wr').textContent = pct(a.wr);
+  $('k-u').textContent = units(a.u);
+  $('k-u').className = 'v ' + sgnClass(a.u);
+  $('k-roi').textContent = a.roi == null ? '–' : (a.roi > 0 ? '+' : a.roi < 0 ? '−' : '') + Math.abs(a.roi * 100).toFixed(1) + '%';
+  $('k-roi').className = 'v ' + sgnClass(a.roi || 0);
 
-  $('b-rec').textContent = rec(a);
-  $('b-n').textContent = `${a.n.toLocaleString()} graded bets`;
-  $('b-wr').textContent = pct(a.wr);
-  $('b-u').textContent = units(a.u);
-  $('b-u').className = 'v ' + (a.u >= 0 ? 'pos' : 'neg');
-  $('b-roi').textContent = a.roi == null ? '–' : (a.roi >= 0 ? '+' : '−') + Math.abs(a.roi * 100).toFixed(1) + '%';
-  $('b-roi').className = 'v ' + (a.roi >= 0 ? 'pos' : 'neg');
-  $('b-pend').textContent = pending.length ? `${pending.length} bets awaiting results` : 'Units won per unit risked';
-
-  // Upcoming
-  const up = sortRows('up', pending);
-  $('today-panel').hidden = !up.length;
-  $('today-n').textContent = up.length ? `${up.length} bets with ${state.min}+ moves` : '';
-  const th = (k, label, cls) => sortTh('up', k, label, cls);
-  $('today-tbl').innerHTML = `<thead><tr>${th('t', 'Start')}${th('lg', 'Sport')}${th('game', 'Game')}${th('m', 'Pick')}${th('odds', 'Odds', 'r')}${th('moves', 'Moves', 'r')}</tr></thead><tbody>` +
-    up.map((r) => `<tr><td>${fmtDate(r.t, true)}</td><td class="lg">${r.lg}</td><td>${esc(r.a)} @ ${esc(r.h)}</td><td><strong>${esc(pickLabel(r))}</strong></td><td class="r num">${odds(r.odds)}</td><td class="r moves">${moves(r)} <small>(${r.steam}s/${r.rlm}r)</small></td></tr>`).join('') + '</tbody>';
-
-  // Exact move counts
   const byN = new Map();
   for (const r of graded) { const k = moves(r); if (!byN.has(k)) byN.set(k, []); byN.get(k).push(r); }
   const keys = [...byN.keys()].sort((x, y) => x - y);
   const buckets = keys.map((k) => ({ label: String(k), a: agg(byN.get(k)) }));
   drawChart(buckets);
-  $('moves-tbl').innerHTML = `<thead><tr><th>Sharp moves</th><th>Record</th><th class="r">Win rate</th><th class="r">Units</th></tr></thead><tbody>` +
-    buckets.map((b) => `<tr><td class="num">${b.label}</td><td class="num">${rec(b.a)}</td><td class="r"><span class="rate-cell"><span class="minibar"><i style="width:${(b.a.wr || 0) * 100}%"></i></span><span class="num">${pct(b.a.wr)}</span></span></td><td class="r num ${b.a.u >= 0 ? 'pos' : 'neg'}">${units(b.a.u)}</td></tr>`).join('') +
-    `<tr class="total"><td>Total</td><td class="num">${rec(a)}</td><td class="r num">${pct(a.wr)}</td><td class="r num ${a.u >= 0 ? 'pos' : 'neg'}">${units(a.u)}</td></tr></tbody>`;
+  $('moves-list').innerHTML = buckets.length
+    ? buckets.map((b) => statRow(`${b.label} moves`, '', b.a)).join('')
+    : '<div class="empty"><p>No graded bets match these filters yet.</p></div>';
 
-  // Threshold insight: best cumulative cut
   const tiers = [];
-  for (const k of keys) { const rows = graded.filter((r) => moves(r) >= k); const t = agg(rows); if (t.w + t.l >= 30) tiers.push({ k, t }); }
+  for (const k of keys) { const t = agg(graded.filter((r) => moves(r) >= k)); if (t.w + t.l >= 30) tiers.push({ k, t }); }
   const best = tiers.slice().sort((x, y) => y.t.wr - x.t.wr)[0];
   $('moves-note').textContent = best
-    ? `Among cutoffs with at least 30 graded bets, ${best.k}+ moves has the best win rate: ${rec(best.t)} (${pct(best.t.wr)}, ${units(best.t.u)}). Small samples swing a lot, so watch the n under each bar.`
-    : 'Not enough graded bets yet to compare cutoffs. Each bar needs a decent sample before it means much.';
+    ? `Best cutoff with 30+ graded bets: ${best.k}+ moves, ${rec(best.t)} (${pct(best.t.wr)}, ${units(best.t.u)}). Small samples swing a lot.`
+    : 'Not enough graded bets yet to compare cutoffs.';
 
-  breakdownTable($('lg-tbl'), LEAGUES.slice(1).map(([v, t]) => [t, graded.filter((r) => r.lg === v)]), 'Sport');
-  breakdownTable($('m-tbl'), MARKETS.slice(1).map(([v, t]) => [t, graded.filter((r) => r.m === v)]), 'Bet type');
+  const group = (list, field) => list.slice(1).map(([v, t]) => [t, graded.filter((r) => r[field] === v)]).filter(([, rows]) => rows.length);
+  const lg = group(LEAGUES, 'lg'), mk = group(MARKETS, 'm');
+  $('lg-list').innerHTML = lg.length ? lg.map(([t, rows]) => statRow(t, `${rows.length} bets`, agg(rows))).join('') : '<div class="empty"><p>No graded bets</p></div>';
+  $('m-list').innerHTML = mk.length ? mk.map(([t, rows]) => statRow(t, `${rows.length} bets`, agg(rows))).join('') : '<div class="empty"><p>No graded bets</p></div>';
+}
 
-  // Log
+function betRow(r) {
+  const u = profit(r);
+  return `<div class="bet">
+    <div class="res ${r.r}" aria-label="${{ W: 'Win', L: 'Loss', P: 'Push' }[r.r]}">${r.r}</div>
+    <div class="pick">${esc(pickLabel(r))} <span class="muted" style="font-weight:400">${odds(r.odds)}</span></div>
+    <div class="u ${sgnClass(u)}">${units(u)}</div>
+    <div class="meta"><span class="lg-badge">${r.lg}</span> ${esc(r.a)} @ ${esc(r.h)} · ${moves(r)} moves</div>
+    <div class="score">${r.as}–${r.hs}</div>
+  </div>`;
+}
+function renderHistory(graded) {
   const log = sortRows('log', graded);
-  $('log-n').textContent = `${log.length.toLocaleString()} bets`;
-  const lth = (k, label, cls) => sortTh('log', k, label, cls);
-  $('log-tbl').innerHTML = `<thead><tr>${lth('t', 'Date')}${lth('lg', 'Sport')}${lth('game', 'Game')}${lth('m', 'Pick')}${lth('odds', 'Odds', 'r')}${lth('moves', 'Moves', 'r')}<th class="r">Final</th>${lth('r', 'Result', 'r')}</tr></thead><tbody>` +
-    (log.slice(0, state.shown).map((r) => `<tr><td>${fmtDate(r.t)}</td><td class="lg">${r.lg}</td><td>${esc(r.a)} @ ${esc(r.h)}</td><td>${esc(pickLabel(r))} <span class="muted">${MNAME[r.m]}</span></td><td class="r num">${odds(r.odds)}</td><td class="r moves">${moves(r)} <small>(${r.steam}s/${r.rlm}r)</small></td><td class="r num">${r.as}–${r.hs}</td><td class="r"><span class="chip ${r.r}">${r.r}</span></td></tr>`).join('')
-      || '<tr><td colspan="8" class="empty">No graded bets match these filters.</td></tr>') + '</tbody>';
+  $('hist-sub').textContent = `${log.length.toLocaleString()} bets`;
+  const shown = log.slice(0, state.shown);
+  if (!shown.length) {
+    $('hist').innerHTML = '<div class="card empty"><strong>No graded bets</strong><p>Nothing matches these filters. Try a wider date range or fewer filters.</p></div>';
+  } else if (state.lsort === 't') {
+    // Group by day, with each day's record from the whole filtered list.
+    const byDay = new Map();
+    for (const r of log) { const d = localDay(r.t); if (!byDay.has(d)) byDay.set(d, []); byDay.get(d).push(r); }
+    const days = [];
+    for (const r of shown) { const d = localDay(r.t); if (days[days.length - 1]?.d !== d) days.push({ d, rows: [] }); days[days.length - 1].rows.push(r); }
+    $('hist').innerHTML = days.map(({ d, rows }) => {
+      const a = agg(byDay.get(d));
+      return `<div class="card hday"><div class="hday-head"><b>${dayName(d)}</b><span class="num">${rec(a)} · <span class="${sgnClass(a.u)}">${units(a.u)}</span></span></div>${rows.map(betRow).join('')}</div>`;
+    }).join('');
+  } else {
+    $('hist').innerHTML = `<div class="card hday">${shown.map(betRow).join('')}</div>`;
+  }
   $('more').hidden = log.length <= state.shown;
 }
 
+function renderSheet() {
+  $('min-out').textContent = state.min + '+';
+  const seg = (el, opts, key) => {
+    el.innerHTML = opts.map(([v, t]) => `<button type="button" data-v="${v}" aria-pressed="${state[key] === v}">${t}</button>`).join('');
+    el.onclick = (e) => { const b = e.target.closest('button'); if (!b) return; state[key] = b.dataset.v; state.shown = 100; save(); render(); };
+  };
+  seg($('seg-lg'), LEAGUES, 'lg');
+  seg($('seg-m'), MARKETS, 'm');
+  $('sel-range').value = state.range;
+  if (!state.day) state.day = shiftDay(today(), -1);
+  $('ctl-day').hidden = state.range !== 'day';
+  $('ctl-range').hidden = state.range !== 'custom';
+  $('in-day').value = state.day;
+  $('in-from').value = state.from || '';
+  $('in-to').value = state.to || '';
+}
+
+function render() {
+  renderTabs();
+  renderChips();
+  renderSheet();
+  const all = filtered();
+  const graded = all.filter((r) => r.r);
+  // Ungraded games that started more than 12 hours ago were postponed or canceled.
+  const pending = all.filter((r) => !r.r && r.st !== 'complete' && new Date(r.t).getTime() > Date.now() - 12 * 36e5);
+  renderPlays(pending);
+  renderStats(graded);
+  renderHistory(graded);
+}
+
+// ---- Events ----
+function setTab(k) {
+  if (state.tab === k) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+  state.tab = k; save();
+  history.replaceState(null, '', '#' + k);
+  renderTabs();
+  window.scrollTo({ top: 0 });
+}
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-tab]');
+  if (t) { setTab(t.dataset.tab); return; }
+  if (e.target.closest('[data-open]')) $('sheet').showModal();
+});
+$('done').onclick = () => $('sheet').close();
+$('sheet').addEventListener('click', (e) => { if (e.target === $('sheet')) $('sheet').close(); });
+$('reset').onclick = () => { Object.assign(state, DEFAULTS, { shown: 100 }); save(); render(); };
 $('min-dn').onclick = () => { state.min = Math.max(5, state.min - 1); state.shown = 100; save(); render(); };
 $('min-up').onclick = () => { state.min = Math.min(40, state.min + 1); state.shown = 100; save(); render(); };
 $('sel-range').onchange = (e) => { state.range = e.target.value; state.shown = 100; save(); render(); };
-for (const [name, T] of Object.entries(TABLES)) {
-  $(T.sel).onchange = (e) => setSort(name, e.target.value, false);
-  $(T.btn).onclick = () => setSort(name, state[T.k], true);
-  $(T.tbl).onclick = (e) => { const b = e.target.closest('button[data-sort]'); if (b) setSort(name, b.dataset.sort, true); };
-}
 const setDates = (patch) => { Object.assign(state, patch); state.shown = 100; save(); render(); };
 $('in-day').onchange = (e) => { if (e.target.value) setDates({ day: e.target.value }); };
 $('day-prev').onclick = () => setDates({ day: shiftDay(state.day, -1) });
 $('day-next').onclick = () => setDates({ day: shiftDay(state.day, 1) });
 $('in-from').onchange = (e) => setDates({ from: e.target.value });
 $('in-to').onchange = (e) => setDates({ to: e.target.value });
+for (const [name, L] of Object.entries(LISTS)) {
+  $(L.sel).onchange = (e) => setSort(name, e.target.value, false);
+  $(L.btn).onclick = () => setSort(name, null, true);
+}
 $('more').onclick = () => { state.shown += 100; render(); };
 
 // ---- Freshness: auto-check for new data, and the Refresh button ----
-// Optional relay that starts a new pull from Action Network (see worker/README.md).
-// Empty means Refresh only re-checks for the latest finished update.
+// Relay that starts a new pull from Action Network (see worker/README.md).
 const REFRESH_URL = 'https://sharp-tracker-refresh.justinyaang.workers.dev/';
-let updatedAt = null; // Date of the data currently shown
+let updatedAt = null;
 let refreshing = false;
 
 function agoText(d) {
@@ -582,13 +782,21 @@ function agoText(d) {
   return h < 24 ? `${h} hr ${m % 60} min ago` : d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 function paintFresh() {
+  $('refresh').disabled = refreshing;
+  $('refresh').classList.toggle('spin', refreshing);
   if (!updatedAt) return;
   const stale = Date.now() - updatedAt.getTime() > 30 * 60000;
-  $('updated').textContent = 'Updated ' + agoText(updatedAt);
+  $('updated').textContent = refreshing ? 'Updating…' : 'Updated ' + agoText(updatedAt);
   $('updated').title = updatedAt.toLocaleString();
   $('fresh-dot').className = 'dot' + (refreshing ? ' busy' : stale ? ' stale' : '');
 }
-const setStatus = (msg) => { $('fresh-status').textContent = msg; };
+let statusTimer = null;
+function setStatus(msg, sticky) {
+  clearTimeout(statusTimer);
+  $('fresh-status').textContent = msg;
+  $('fresh-status').hidden = !msg;
+  if (msg && !sticky) statusTimer = setTimeout(() => { $('fresh-status').hidden = true; }, 6000);
+}
 
 // Fetches data.json past the browser and CDN caches. Returns true if it was newer.
 async function loadData() {
@@ -605,25 +813,20 @@ async function loadData() {
 async function refresh() {
   if (refreshing) return;
   refreshing = true;
-  $('refresh').disabled = true;
   paintFresh();
   const started = Date.now();
   try {
-    if (!REFRESH_URL) {
-      setStatus((await loadData()) ? 'Loaded the newest data.' : 'Already showing the newest data. It updates every 5 minutes.');
-      return;
-    }
-    let msg = 'Pulling fresh data from Action Network. This takes about 1–2 minutes.';
+    if (!REFRESH_URL) { setStatus((await loadData()) ? 'Loaded the newest data.' : 'Already up to date.'); return; }
+    let msg = 'Pulling fresh data from Action Network. About 1–2 minutes.';
     try {
       const r = await fetch(REFRESH_URL, { method: 'POST' });
       const j = await r.json().catch(() => ({}));
       if (j.state === 'running') msg = 'An update is already running. New data will appear when it finishes.';
-      else if (!r.ok && j.state !== 'started') msg = 'Couldn\'t start a new pull right now, so checking for the latest update instead.';
+      else if (!r.ok && j.state !== 'started') msg = 'Couldn\'t start a new pull, so waiting for the next scheduled update.';
     } catch (e) {
-      msg = 'Couldn\'t reach the refresh service, so checking for the latest update instead.';
+      msg = 'Couldn\'t reach the refresh service, so waiting for the next scheduled update.';
     }
-    setStatus(msg);
-    // Poll until data newer than the click shows up (about 1–2 min), for up to 5 minutes.
+    setStatus(msg, true);
     while (Date.now() - started < 5 * 60000) {
       await new Promise((res) => setTimeout(res, 10000));
       try { await loadData(); } catch (e) {}
@@ -634,19 +837,16 @@ async function refresh() {
     setStatus('Couldn\'t load the data. Check your connection and try again.');
   } finally {
     refreshing = false;
-    $('refresh').disabled = false;
     paintFresh();
   }
 }
-
 $('refresh').onclick = refresh;
-// While the page is open: re-check every 2 minutes, and right away when you come back to the tab.
 setInterval(() => { if (!document.hidden && !refreshing) loadData().catch(() => {}); }, 2 * 60000);
 setInterval(paintFresh, 30000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden && !refreshing) loadData().catch(() => {}); });
 
 render();
-loadData().catch(() => { $('updated').textContent = 'Couldn\'t load the bet data. Reload the page to try again.'; });
+loadData().catch(() => { $('updated').textContent = 'Couldn\'t load data. Reload to try again.'; });
 </script>
 </body>
 </html>
