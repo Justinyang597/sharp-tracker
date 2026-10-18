@@ -23,3 +23,11 @@ secret settings, never in the public site.
 5. Copy the Worker's URL (like `https://sharp-tracker-refresh.<you>.workers.dev`).
 
 Then put that URL in `REFRESH_URL` near the bottom of `docs/index.html`.
+
+## 3. Backup 5-minute clock
+
+GitHub's own schedule is often late or skipped, so the Worker also starts an update
+every 5 minutes (skipping it if one started in the last 4 minutes).
+
+1. On the Worker: **Settings** → **Triggers** → **Cron Triggers** → **Add**.
+2. Choose **Custom**/**Cron expression**, enter `*/5 * * * *`, and **Add** / **Save**.
