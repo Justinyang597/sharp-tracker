@@ -1,4 +1,4 @@
-{"updated":"2026-10-18T16:56:33+00:00","rows":[
+{"updated":"2026-10-18T18:21:24+00:00","rows":[
 {"id":"ncaaf-283134-spread-away","lg":"ncaaf","d":"20251214","t":"2025-12-14T01:00:00.000Z","a":"BOISE","h":"WASH","m":"spread","s":"away","pick":"BOISE","line":10,"odds":-110,"book":15,"steam":2,"rlm":3,"str":0.8,"as":10,"hs":38,"st":"complete","r":"L"},
 {"id":"ncaaf-283146-spread-home","lg":"ncaaf","d":"20251217","t":"2025-12-17T02:00:00.000Z","a":"TROY","h":"JVST","m":"spread","s":"home","pick":"JVST","line":-3.5,"odds":-188,"book":15,"steam":6,"rlm":0,"str":0.8,"as":13,"hs":17,"st":"complete","r":"W"},
 {"id":"ncaaf-283146-total-under","lg":"ncaaf","d":"20251217","t":"2025-12-17T02:00:00.000Z","a":"TROY","h":"JVST","m":"total","s":"under","pick":"under","line":47.5,"odds":-108,"book":15,"steam":3,"rlm":3,"str":0.8,"as":13,"hs":17,"st":"complete","r":"W"},
@@ -4900,9 +4900,9 @@
 {"id":"ncaaf-289538-spread-away","lg":"ncaaf","d":"20261018","t":"2026-10-18T02:30:00.000Z","a":"WF","h":"CAL","m":"spread","s":"away","pick":"WF","line":-10,"odds":-112,"book":15,"steam":6,"rlm":0,"str":0.7,"as":41,"hs":7,"st":"complete","r":"W"},
 {"id":"ncaaf-289538-total-under","lg":"ncaaf","d":"20261018","t":"2026-10-18T02:30:00.000Z","a":"WF","h":"CAL","m":"total","s":"under","pick":"under","line":53.5,"odds":-109,"book":15,"steam":5,"rlm":0,"str":0.5,"as":null,"hs":null,"st":"scheduled","r":null},
 {"id":"ncaaf-289543-total-under","lg":"ncaaf","d":"20261018","t":"2026-10-18T03:00:00.000Z","a":"NEB","h":"ORE","m":"total","s":"under","pick":"under","line":50.5,"odds":-108,"book":15,"steam":3,"rlm":6,"str":1,"as":14,"hs":17,"st":"complete","r":"W"},
-{"id":"nfl-290918-spread-away","lg":"nfl","d":"20261018","t":"2026-10-18T17:00:00.000Z","a":"CHI","h":"ATL","m":"spread","s":"away","pick":"CHI","line":-1.5,"odds":-107,"book":15,"steam":6,"rlm":5,"str":0.6,"as":null,"hs":null,"st":"scheduled","r":null},
+{"id":"nfl-290918-spread-away","lg":"nfl","d":"20261018","t":"2026-10-18T17:00:00.000Z","a":"CHI","h":"ATL","m":"spread","s":"away","pick":"CHI","line":-1.5,"odds":-105,"book":15,"steam":6,"rlm":5,"str":0.6,"as":null,"hs":null,"st":"inprogress","r":null},
 {"id":"nfl-290919-spread-away","lg":"nfl","d":"20261018","t":"2026-10-18T17:00:00.000Z","a":"BAL","h":"CLE","m":"spread","s":"away","pick":"BAL","line":-3.5,"odds":-115,"book":15,"steam":7,"rlm":0,"str":0.6,"as":null,"hs":null,"st":"scheduled","r":null},
-{"id":"nfl-290919-total-under","lg":"nfl","d":"20261018","t":"2026-10-18T17:00:00.000Z","a":"BAL","h":"CLE","m":"total","s":"under","pick":"under","line":39.5,"odds":-110,"book":15,"steam":4,"rlm":6,"str":1,"as":null,"hs":null,"st":"scheduled","r":null},
-{"id":"nfl-290923-total-under","lg":"nfl","d":"20261018","t":"2026-10-18T17:00:00.000Z","a":"CAR","h":"PHI","m":"total","s":"under","pick":"under","line":39.5,"odds":-108,"book":15,"steam":2,"rlm":5,"str":1,"as":null,"hs":null,"st":"scheduled","r":null},
-{"id":"nfl-290924-total-under","lg":"nfl","d":"20261018","t":"2026-10-18T17:00:00.000Z","a":"TEN","h":"IND","m":"total","s":"under","pick":"under","line":43.5,"odds":-109,"book":15,"steam":6,"rlm":6,"str":1,"as":null,"hs":null,"st":"scheduled","r":null}
+{"id":"nfl-290919-total-under","lg":"nfl","d":"20261018","t":"2026-10-18T17:00:00.000Z","a":"BAL","h":"CLE","m":"total","s":"under","pick":"under","line":39.5,"odds":-110,"book":15,"steam":4,"rlm":6,"str":1,"as":null,"hs":null,"st":"inprogress","r":null},
+{"id":"nfl-290923-total-under","lg":"nfl","d":"20261018","t":"2026-10-18T17:00:00.000Z","a":"CAR","h":"PHI","m":"total","s":"under","pick":"under","line":34.5,"odds":-121,"book":15,"steam":2,"rlm":5,"str":1,"as":null,"hs":null,"st":"inprogress","r":null},
+{"id":"nfl-290924-total-under","lg":"nfl","d":"20261018","t":"2026-10-18T17:00:00.000Z","a":"TEN","h":"IND","m":"total","s":"under","pick":"under","line":34,"odds":-109,"book":15,"steam":6,"rlm":7,"str":1,"as":null,"hs":null,"st":"inprogress","r":null}
 ]}
