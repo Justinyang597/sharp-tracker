@@ -24,10 +24,10 @@ secret settings, never in the public site.
 
 Then put that URL in `REFRESH_URL` near the bottom of `docs/index.html`.
 
-## 3. Backup 5-minute clock
+## 3. Daily login check
 
-GitHub's own schedule is often late or skipped, so the Worker also starts an update
-every 5 minutes (skipping it if one started in the last 4 minutes).
+Once a day the Worker starts the "Check Action Network login" workflow. If your token
+has expired, that run fails and GitHub emails you.
 
 1. On the Worker: **Settings** → **Triggers** → **Cron Triggers** → **Add**.
-2. Choose **Custom**/**Cron expression**, enter `*/5 * * * *`, and **Add** / **Save**.
+2. Choose **Custom**/**Cron expression**, enter `0 15 * * *` (daily, 15:00 UTC), and **Add** / **Save**.

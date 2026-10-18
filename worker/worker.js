@@ -1,13 +1,14 @@
-// Cloudflare Worker behind the site's Refresh button, and a backup clock.
+// Cloudflare Worker behind the site's Refresh button, plus a daily login check.
 // POST / -> starts the "Update sharp tracker" GitHub workflow, unless one is
 // already running or one started in the last 90 seconds (so the button can't be spammed).
-// Cron trigger (Worker → Settings → Triggers → Cron, "*/5 * * * *") -> does the same
-// every 5 minutes, because GitHub's own schedule is often late or skipped.
+// Cron trigger (Worker → Settings → Triggers → Cron, "0 15 * * *") -> once a day starts
+// "Check Action Network login", which fails (and GitHub emails you) if the token expired.
 //
 // Settings (Worker → Settings → Variables and Secrets):
 //   GH_TOKEN  (secret)  fine-grained GitHub token: this repo only, "Actions: Read and write"
 const REPO = 'Justinyang597/sharp-tracker';
 const WORKFLOW = 'update.yml';
+const CHECK_WORKFLOW = 'check-token.yml';
 const SITE_ORIGIN = 'https://justinyang597.github.io';
 const MIN_GAP_MS = 90 * 1000;
 
@@ -62,9 +63,12 @@ export default {
     return reply(status, body);
   },
 
-  // Backup clock: skip if any run (GitHub's own schedule, or a Refresh press)
-  // started in the last 4 minutes, so runs stay about 5 minutes apart.
+  // Daily: check the Action Network login without pulling any data.
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(startUpdate(env, 4 * 60 * 1000));
+    ctx.waitUntil(gh(env, `/actions/workflows/${CHECK_WORKFLOW}/dispatches`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ref: 'main' }),
+    }));
   },
 };

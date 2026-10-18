@@ -119,6 +119,7 @@ button { cursor: pointer; }
 .chip.on { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
 .chip .count { background: var(--accent); color: var(--accent-ink); border-radius: 999px; font-size: 11px; padding: 0 6px; font-weight: 600; }
 .status { font-size: 12px; color: var(--accent); padding-bottom: 8px; margin-top: -4px; }
+.status.err { color: var(--loss); }
 
 /* Desktop tabs live in the top bar */
 .toptabs { display: none; gap: 4px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 3px; }
@@ -373,7 +374,7 @@ select.input, input.input { border: 1px solid var(--line); background: var(--sur
     </section>
 
     <footer>
-      <p>Each bet is a market where Action Network PRO tracked sharp money with 5+ sharp moves (steam + reverse line moves). Graded at the consensus closing line, 1 unit risked. Updates every 5 minutes.</p>
+      <p>Each bet is a market where Action Network PRO tracked sharp money with 5+ sharp moves (steam + reverse line moves). Graded at the consensus closing line, 1 unit risked. Press Refresh for live data from Action Network.</p>
       <p>Tracking only. Past results don't predict future ones.</p>
     </footer>
   </div>
@@ -600,7 +601,7 @@ function renderPlays(pending) {
   paintBadge();
   if (!up.length) {
     $('plays-sub').textContent = '';
-    $('plays').innerHTML = `<div class="card empty" style="grid-column:1/-1"><strong>No plays with ${state.min}+ sharp moves right now</strong><p>New plays show up as sharp money comes in, usually the day before and the day of a game. This checks every 5 minutes.</p></div>`;
+    $('plays').innerHTML = `<div class="card empty" style="grid-column:1/-1"><strong>No plays with ${state.min}+ sharp moves right now</strong><p>New plays show up as sharp money comes in, usually the day before and the day of a game. Press Refresh to check for new ones.</p></div>`;
     return;
   }
   const next = up.slice().sort((a, b) => a.t.localeCompare(b.t))[0];
@@ -791,11 +792,31 @@ function paintFresh() {
   $('fresh-dot').className = 'dot' + (refreshing ? ' busy' : stale ? ' stale' : '');
 }
 let statusTimer = null;
-function setStatus(msg, sticky) {
+function setStatus(msg, sticky, err) {
   clearTimeout(statusTimer);
   $('fresh-status').textContent = msg;
   $('fresh-status').hidden = !msg;
+  $('fresh-status').classList.toggle('err', !!err);
   if (msg && !sticky) statusTimer = setTimeout(() => { $('fresh-status').hidden = true; }, 6000);
+}
+
+// Latest run of a workflow, from GitHub's public API (no key needed for a public repo).
+const GH_RUNS = 'https://api.github.com/repos/Justinyang597/sharp-tracker/actions/workflows/';
+async function latestRun(workflow) {
+  const r = await fetch(`${GH_RUNS}${workflow}/runs?per_page=1`, { cache: 'no-store' });
+  if (!r.ok) return null;
+  return ((await r.json()).workflow_runs || [])[0] || null;
+}
+const LOGIN_MSG = 'The last update failed. The Action Network login has probably expired: refresh the AN_TOKEN secret (steps in the repo README).';
+
+// On open: warn if the most recent update or daily login check failed.
+async function checkHealth() {
+  try {
+    const runs = (await Promise.all([latestRun('update.yml'), latestRun('check-token.yml')]))
+      .filter((r) => r && r.status === 'completed')
+      .sort((a, b) => b.created_at.localeCompare(a.created_at));
+    if (runs[0] && runs[0].conclusion === 'failure') setStatus(LOGIN_MSG, true, true);
+  } catch (e) {}
 }
 
 // Fetches data.json past the browser and CDN caches. Returns true if it was newer.
@@ -822,17 +843,28 @@ async function refresh() {
       const r = await fetch(REFRESH_URL, { method: 'POST' });
       const j = await r.json().catch(() => ({}));
       if (j.state === 'running') msg = 'An update is already running. New data will appear when it finishes.';
-      else if (!r.ok && j.state !== 'started') msg = 'Couldn\'t start a new pull, so waiting for the next scheduled update.';
+      else if (!r.ok && j.state !== 'started') { setStatus('Couldn\'t start an update. Try again in a minute.', false, true); return; }
     } catch (e) {
-      msg = 'Couldn\'t reach the refresh service, so waiting for the next scheduled update.';
+      setStatus('Couldn\'t reach the refresh service. Check your connection and try again.', false, true);
+      return;
     }
     setStatus(msg, true);
-    while (Date.now() - started < 5 * 60000) {
+    for (let i = 1; Date.now() - started < 5 * 60000; i++) {
       await new Promise((res) => setTimeout(res, 10000));
       try { await loadData(); } catch (e) {}
       if (updatedAt && updatedAt.getTime() >= started - 30000) { setStatus('Up to date.'); return; }
+      // Every 30 seconds, stop early if this update failed (usually an expired login).
+      if (i % 3 === 0) {
+        try {
+          const run = await latestRun('update.yml');
+          if (run && run.status === 'completed' && run.conclusion === 'failure' && Date.parse(run.created_at) >= started - 60000) {
+            setStatus(LOGIN_MSG, true, true);
+            return;
+          }
+        } catch (e) {}
+      }
     }
-    setStatus('Still waiting on the update. It should appear within a few minutes.');
+    setStatus('The update is taking longer than usual. Try Refresh again in a few minutes.');
   } catch (e) {
     setStatus('Couldn\'t load the data. Check your connection and try again.');
   } finally {
@@ -847,6 +879,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && !r
 
 render();
 loadData().catch(() => { $('updated').textContent = 'Couldn\'t load data. Reload to try again.'; });
+checkHealth();
 </script>
 </body>
 </html>

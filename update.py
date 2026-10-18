@@ -4,6 +4,7 @@ Runs in GitHub Actions (see .github/workflows/update.yml) or locally:
 
     AN_TOKEN=... python update.py              # last 3 days through tomorrow
     AN_TOKEN=... python update.py 20261001 20261010
+    AN_TOKEN=... python update.py --check      # only confirm the token still works
 
 AN_TOKEN is the value of the AN_SESSION_TOKEN_V1 cookie from a logged-in
 actionnetwork.com browser. It lasts about 180 days; when it expires the run
@@ -203,7 +204,10 @@ def main():
 
     # US Eastern-ish "today"; the window is several days wide so DST doesn't matter.
     today = (datetime.now(timezone.utc) - timedelta(hours=5)).date()
-    if len(sys.argv) == 3:
+    check_only = sys.argv[1:] == ["--check"]
+    if check_only:
+        start = end = today
+    elif len(sys.argv) == 3:
         start = datetime.strptime(sys.argv[1], "%Y%m%d").date()
         end = datetime.strptime(sys.argv[2], "%Y%m%d").date()
     else:
@@ -221,6 +225,10 @@ def main():
     if seen >= 20 and with_pro < seen * 0.5:
         sys.exit(f"Only {with_pro} of {seen} games had PRO data, so the token isn't a PRO "
                  "session anymore (logged out or subscription lapsed). Refresh AN_TOKEN (see README).")
+
+    if check_only:
+        print(f"Token OK: logged in, {with_pro} of {seen} games today have PRO data.")
+        return
 
     with open(SITE_DATA, encoding="utf-8") as f:
         rows = {r["id"]: r for r in json.load(f)["rows"]}

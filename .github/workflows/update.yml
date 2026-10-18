@@ -1,9 +1,9 @@
 name: Update sharp tracker
 
+# Runs only on demand: the site's Refresh button (via the Cloudflare Worker),
+# or "Run workflow" on the Actions tab.
 on:
-  schedule:
-    - cron: "*/5 * * * *" # every 5 minutes, GitHub's fastest (it may start a few minutes late when busy)
-  workflow_dispatch: # "Run workflow" button, and the site's Refresh button (via the Cloudflare Worker)
+  workflow_dispatch:
 
 permissions:
   contents: write # commit docs/data.json when bets change

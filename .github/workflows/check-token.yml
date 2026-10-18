@@ -1,0 +1,24 @@
+name: Check Action Network login
+
+# Once a day: confirm the AN_TOKEN secret is still a logged-in PRO session.
+# If it isn't, this run fails and GitHub emails you, so you can refresh it before
+# you next press Refresh on the site. Started daily by the Cloudflare Worker's cron
+# (GitHub's own schedule below is a backup and is often late).
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 15 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the Action Network token
+        env:
+          AN_TOKEN: ${{ secrets.AN_TOKEN }}
+        run: python3 update.py --check
