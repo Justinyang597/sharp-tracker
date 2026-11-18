@@ -1,4 +1,4 @@
-{"updated":"2026-11-18T00:29:16+00:00","rows":[
+{"updated":"2026-11-18T00:30:43+00:00","rows":[
 {"id":"ncaaf-283134-spread-away","lg":"ncaaf","d":"20251214","t":"2025-12-14T01:00:00.000Z","a":"BOISE","h":"WASH","m":"spread","s":"away","pick":"BOISE","line":10,"odds":-110,"book":15,"steam":2,"rlm":3,"str":0.8,"as":10,"hs":38,"st":"complete","r":"L"},
 {"id":"ncaaf-283146-spread-home","lg":"ncaaf","d":"20251217","t":"2025-12-17T02:00:00.000Z","a":"TROY","h":"JVST","m":"spread","s":"home","pick":"JVST","line":-3.5,"odds":-188,"book":15,"steam":6,"rlm":0,"str":0.8,"as":13,"hs":17,"st":"complete","r":"W"},
 {"id":"ncaaf-283146-total-under","lg":"ncaaf","d":"20251217","t":"2025-12-17T02:00:00.000Z","a":"TROY","h":"JVST","m":"total","s":"under","pick":"under","line":47.5,"odds":-108,"book":15,"steam":3,"rlm":3,"str":0.8,"as":13,"hs":17,"st":"complete","r":"W"},
@@ -5888,7 +5888,7 @@
 {"id":"ncaab-297881-total-under","lg":"ncaab","d":"20261118","t":"2026-11-18T00:00:00.000Z","a":"NORF","h":"GT","m":"total","s":"under","pick":"under","line":147.5,"odds":-108,"book":15,"steam":6,"rlm":0,"str":0.6,"as":null,"hs":null,"st":"inprogress","r":null},
 {"id":"ncaab-297882-total-over","lg":"ncaab","d":"20261118","t":"2026-11-18T00:00:00.000Z","a":"TNST","h":"USF","m":"total","s":"over","pick":"over","line":169.5,"odds":-118,"book":15,"steam":4,"rlm":1,"str":0.7,"as":null,"hs":null,"st":"inprogress","r":null},
 {"id":"ncaab-303551-total-under","lg":"ncaab","d":"20261118","t":"2026-11-18T00:00:00.000Z","a":"GB","h":"UWF","m":"total","s":"under","pick":"under","line":144.5,"odds":-117,"book":15,"steam":4,"rlm":3,"str":1,"as":null,"hs":null,"st":"inprogress","r":null},
-{"id":"ncaaf-290074-total-over","lg":"ncaaf","d":"20261118","t":"2026-11-18T00:00:00.000Z","a":"M-OH","h":"KENT","m":"total","s":"over","pick":"over","line":49.5,"odds":-111,"book":15,"steam":7,"rlm":0,"str":0.7,"as":null,"hs":null,"st":"inprogress","r":null},
+{"id":"ncaaf-290074-total-over","lg":"ncaaf","d":"20261118","t":"2026-11-18T00:00:00.000Z","a":"M-OH","h":"KENT","m":"total","s":"over","pick":"over","line":50,"odds":-116,"book":15,"steam":7,"rlm":0,"str":0.7,"as":null,"hs":null,"st":"inprogress","r":null},
 {"id":"nhl-293638-total-under","lg":"nhl","d":"20261118","t":"2026-11-18T00:00:00.000Z","a":"OTT","h":"WPG","m":"total","s":"under","pick":"under","line":5.5,"odds":103,"book":15,"steam":3,"rlm":3,"str":0.9,"as":null,"hs":null,"st":"inprogress","r":null},
 {"id":"nba-295454-spread-home","lg":"nba","d":"20261118","t":"2026-11-18T00:30:00.000Z","a":"NYK","h":"TOR","m":"spread","s":"home","pick":"TOR","line":2.5,"odds":-111,"book":15,"steam":4,"rlm":5,"str":1,"as":null,"hs":null,"st":"scheduled","r":null},
 {"id":"nba-295454-total-under","lg":"nba","d":"20261118","t":"2026-11-18T00:30:00.000Z","a":"NYK","h":"TOR","m":"total","s":"under","pick":"under","line":215.5,"odds":-108,"book":15,"steam":2,"rlm":3,"str":0.5,"as":null,"hs":null,"st":"scheduled","r":null},
