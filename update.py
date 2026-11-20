@@ -5,6 +5,11 @@ Runs in GitHub Actions (see .github/workflows/update.yml) or locally:
     AN_TOKEN=... python update.py              # last 3 days through tomorrow
     AN_TOKEN=... python update.py 20261001 20261010
     AN_TOKEN=... python update.py --check      # only confirm the token still works
+    AN_TOKEN=... python update.py --alerts     # light pull (today + tomorrow) for Telegram alerts
+    python update.py --telegram-test           # send a test Telegram message
+
+Telegram alerts (optional): set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID. Every run sends
+one message per play the first time it reaches ALERT_MOVES (default 8) before its game starts.
 
 AN_TOKEN is the value of the AN_SESSION_TOKEN_V1 cookie from a logged-in
 actionnetwork.com browser. It lasts about 180 days; when it expires the run
@@ -169,7 +174,7 @@ def game_state(league, game):
     }
 
 
-def collect(token, start, end):
+def collect(token, start, end, football_prev=True):
     """Returns (rows, games, games_seen, games_with_pro, errors).
 
     games maps "league-gameid" to that game's status and score, for every game
@@ -200,10 +205,10 @@ def collect(token, start, end):
     for lg in LEAGUES:
         if lg in FOOTBALL:
             # Football ignores dates: pull the current week, plus the previous
-            # regular-season week so Monday games still get graded.
+            # regular-season week so Monday games still get graded (skipped on alert runs).
             j = pull(lg, "", "current week")
             g = (j or {}).get("games") or []
-            if g and (g[0].get("type") or "reg") == "reg" and (g[0].get("week") or 0) > 1:
+            if football_prev and g and (g[0].get("type") or "reg") == "reg" and (g[0].get("week") or 0) > 1:
                 pull(lg, f"&seasonType=reg&week={g[0]['week'] - 1}", f"week {g[0]['week'] - 1}")
             continue
         extras = ["&division=D1&tournament=0", "&division=D1&tournament=1"] if lg == "ncaab" else [""]
@@ -215,43 +220,160 @@ def collect(token, start, end):
     return rows, games_state, seen, with_pro, errors
 
 
+# ---- Telegram alerts ----
+ALERT_MOVES = int(os.environ.get("ALERT_MOVES") or 8)
+SITE_URL = "https://justinyang597.github.io/sharp-tracker/"
+LEAGUE_NAME = {"mlb": "MLB", "nfl": "NFL", "ncaaf": "NCAAF", "nba": "NBA", "nhl": "NHL", "ncaab": "NCAAB"}
+MARKET_NAME = {"spread": "Spread", "total": "Total", "moneyline": "Moneyline"}
+
+
+def telegram(text):
+    """Sends a Telegram message if the bot is configured. Returns True if sent."""
+    bot = (os.environ.get("TELEGRAM_BOT_TOKEN") or "").strip()
+    chat = (os.environ.get("TELEGRAM_CHAT_ID") or "").strip()
+    if not bot or not chat:
+        return False
+    body = json.dumps({"chat_id": chat, "text": text, "parse_mode": "HTML",
+                       "disable_web_page_preview": True}).encode()
+    req = urllib.request.Request(f"https://api.telegram.org/bot{bot}/sendMessage", data=body,
+                                 headers={"content-type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return bool(json.load(r).get("ok"))
+    except Exception as e:  # a Telegram hiccup shouldn't sink the update
+        print("warning: Telegram send failed:", e)
+        return False
+
+
+def eastern(dt):
+    """UTC datetime -> (US Eastern datetime, "EST"/"EDT"). DST: 2nd Sun of Mar to 1st Sun of Nov."""
+    def nth_sunday(year, month, n):
+        d = datetime(year, month, 1, tzinfo=timezone.utc)
+        return d + timedelta(days=(6 - d.weekday()) % 7 + 7 * (n - 1))
+    dst = nth_sunday(dt.year, 3, 2) + timedelta(hours=7) <= dt < nth_sunday(dt.year, 11, 1) + timedelta(hours=6)
+    off = -4 if dst else -5
+    return dt.astimezone(timezone(timedelta(hours=off))), "EDT" if dst else "EST"
+
+
+def pick_label(r):
+    if r["m"] == "total":
+        return f"{'Over' if r['s'] == 'over' else 'Under'} {r['line']}"
+    if r["m"] == "moneyline":
+        return f"{r['pick']} ML"
+    line = r["line"]
+    return f"{r['pick']} {'+' if line is not None and line > 0 else ''}{line}"
+
+
+def alert_text(r):
+    moves = r["steam"] + r["rlm"]
+    when, tz = eastern(datetime.fromisoformat(r["t"].replace("Z", "+00:00")))
+    today = eastern(datetime.now(timezone.utc))[0].date()
+    if when.date() == today:
+        day = "Today"
+    elif when.date() == today + timedelta(days=1):
+        day = "Tomorrow"
+    else:
+        day = f"{when:%a %b} {when.day}"
+    clock = f"{when.hour % 12 or 12}:{when:%M} {'AM' if when.hour < 12 else 'PM'}"
+    odds = r["odds"]
+    odds_s = "" if odds is None else f" ({'+' if odds > 0 else ''}{odds})"
+    return (f"🔥 <b>{moves} sharp moves</b> · {LEAGUE_NAME.get(r['lg'], r['lg'].upper())} {MARKET_NAME.get(r['m'], '')}\n"
+            f"<b>{pick_label(r)}</b>{odds_s}\n"
+            f"{r['a']} @ {r['h']} · {day} {clock} {tz}\n"
+            f"{r['steam']} steam · {r['rlm']} reverse\n"
+            f'<a href="{SITE_URL}">Open tracker</a>')
+
+
+# ---- Site data file ----
+def load_site():
+    with open(SITE_DATA, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def write_site(rows, meta):
+    """One bet per line. Line 1 (update time, login status) changes every run and is ignored
+    when deciding whether to commit; line 2 (when we last warned on Telegram) is kept."""
+    updated = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    lines = ",\n".join(json.dumps(r, separators=(",", ":")) for r in rows)
+    with open(SITE_DATA, "w", encoding="utf-8", newline="\n") as f:
+        f.write(f'{{"updated":"{updated}","token_error":{json.dumps(meta.get("token_error"))},\n'
+                f'"token_warned":{json.dumps(meta.get("token_warned"))},"rows":[\n{lines}\n]}}\n')
+
+
+def token_failed(msg, alerts_mode):
+    """Flags the site, warns on Telegram at most once a day, and stops the run."""
+    site = load_site()
+    now = datetime.now(timezone.utc)
+    meta = {"token_error": now.isoformat(timespec="seconds"), "token_warned": site.get("token_warned")}
+    last = site.get("token_warned")
+    if not last or now - datetime.fromisoformat(last) > timedelta(hours=20):
+        if telegram("⚠️ <b>Sharp Tracker can't log in to Action Network.</b>\n"
+                    "Your login token expired. Copy a fresh AN_SESSION_TOKEN_V1 cookie into the "
+                    "AN_TOKEN secret on GitHub (steps in the repo README)."):
+            meta["token_warned"] = now.isoformat(timespec="seconds")
+    write_site(site["rows"], meta)
+    print(msg)
+    # Scheduled alert checks exit cleanly so GitHub doesn't email you every 15 minutes;
+    # a Refresh press fails visibly.
+    sys.exit(0 if alerts_mode else 1)
+
+
 def main():
+    args = sys.argv[1:]
+    if args == ["--telegram-test"]:
+        ok = telegram(f"✅ <b>Sharp Tracker is connected.</b>\nYou'll get a message for every play that "
+                      f"reaches {ALERT_MOVES}+ sharp moves before its game starts.")
+        sys.exit(0 if ok else "Telegram test failed: check the TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID "
+                 "secrets, and that you pressed Start in your bot's chat.")
+
     token = (os.environ.get("AN_TOKEN") or "").strip()
     if not token:
         sys.exit("AN_TOKEN is not set. Add it as a GitHub Actions secret (see README).")
 
-    # US Eastern-ish "today"; the window is several days wide so DST doesn't matter.
+    # US Eastern-ish "today"; the windows are days wide so the exact hour doesn't matter.
     today = (datetime.now(timezone.utc) - timedelta(hours=5)).date()
-    check_only = sys.argv[1:] == ["--check"]
+    check_only = args == ["--check"]
+    alerts_mode = args == ["--alerts"]
     if check_only:
         start = end = today
-    elif len(sys.argv) == 3:
-        start = datetime.strptime(sys.argv[1], "%Y%m%d").date()
-        end = datetime.strptime(sys.argv[2], "%Y%m%d").date()
+    elif alerts_mode:
+        start, end = today, today + timedelta(days=1)
+    elif len(args) == 2:
+        start = datetime.strptime(args[0], "%Y%m%d").date()
+        end = datetime.strptime(args[1], "%Y%m%d").date()
     else:
         start, end = today - timedelta(days=3), today + timedelta(days=1)
 
+    fix = "Copy a fresh AN_SESSION_TOKEN_V1 cookie into the AN_TOKEN secret (see README)."
     try:
         check_token(token)
-        new_rows, games_state, seen, with_pro, errors = collect(token, start, end)
+        new_rows, games_state, seen, with_pro, errors = collect(token, start, end, football_prev=not alerts_mode)
     except TokenError as e:
-        sys.exit(f"{e}. Your Action Network login token expired: copy a fresh "
-                 "AN_SESSION_TOKEN_V1 cookie into the AN_TOKEN secret (see README).")
+        msg = f"{e}. Your Action Network login token expired. {fix}"
+        if check_only:
+            sys.exit(msg)
+        token_failed(msg, alerts_mode)
 
     # A PRO session gets a pro_report on nearly every game; without PRO only a few
     # free games have one. Stop before saving so upcoming plays aren't dropped.
     if seen >= 20 and with_pro < seen * 0.5:
-        sys.exit(f"Only {with_pro} of {seen} games had PRO data, so the token isn't a PRO "
-                 "session anymore (logged out or subscription lapsed). Refresh AN_TOKEN (see README).")
+        msg = (f"Only {with_pro} of {seen} games had PRO data, so the token isn't a PRO session anymore "
+               f"(logged out or subscription lapsed). {fix}")
+        if check_only:
+            sys.exit(msg)
+        token_failed(msg, alerts_mode)
 
     if check_only:
         print(f"Token OK: logged in, {with_pro} of {seen} games today have PRO data.")
         return
 
-    with open(SITE_DATA, encoding="utf-8") as f:
-        rows = {r["id"]: r for r in json.load(f)["rows"]}
+    site = load_site()
+    rows = {r["id"]: r for r in site["rows"]}
     before = len(rows)
     for r in new_rows:
+        old = rows.get(r["id"])
+        if old and old.get("alerted"):
+            r["alerted"] = old["alerted"]
         rows[r["id"]] = r
 
     # A play logged earlier whose sharp signal has since dropped below 5 (or vanished)
@@ -269,15 +391,25 @@ def main():
         if gs["done"]:
             r["r"] = grade(r["m"], r["s"], r["line"], gs["as"], gs["hs"])
             regraded += r["r"] is not None
+
+    # Telegram: one alert per play, the first time it reaches ALERT_MOVES before its game starts.
+    now_iso = datetime.now(timezone.utc).isoformat()
+    sent = 0
+    for r in sorted(rows.values(), key=lambda r: r["t"] or ""):
+        if (r["steam"] + r["rlm"] >= ALERT_MOVES and not r.get("alerted") and not r.get("r")
+                and r.get("st") == "scheduled" and (r["t"] or "") > now_iso):
+            if telegram(alert_text(r)):
+                r["alerted"] = r["steam"] + r["rlm"]
+                sent += 1
+                time.sleep(0.5)
+
     out = sorted(rows.values(), key=lambda r: (r["t"] or "", r["id"]))
-    updated = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    lines = ",\n".join(json.dumps(r, separators=(",", ":")) for r in out)
-    with open(SITE_DATA, "w", encoding="utf-8", newline="\n") as f:
-        f.write(f'{{"updated":"{updated}","rows":[\n{lines}\n]}}\n')
+    write_site(out, {"token_error": None, "token_warned": None})
 
     graded = sum(1 for r in out if r.get("r"))
     print(f"{start}..{end}: {seen} games ({with_pro} with PRO data), {len(new_rows)} bets with {MIN_MOVES}+ moves; "
-          f"{len(out) - before} new, {regraded} older plays graded. Total {len(out)} bets, {graded} graded.")
+          f"{len(out) - before} new, {regraded} older plays graded, {sent} Telegram alerts. "
+          f"Total {len(out)} bets, {graded} graded.")
     for e in errors[:10]:
         print("warning:", e)
 

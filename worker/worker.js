@@ -1,14 +1,17 @@
-// Cloudflare Worker behind the site's Refresh button, plus a daily login check.
+// Cloudflare Worker behind the site's Refresh button, plus two timers.
 // POST / -> starts the "Update sharp tracker" GitHub workflow, unless one is
 // already running or one started in the last 90 seconds (so the button can't be spammed).
-// Cron trigger (Worker → Settings → Triggers → Cron, "0 15 * * *") -> once a day starts
-// "Check Action Network login", which fails (and GitHub emails you) if the token expired.
+// Cron triggers (Worker → Settings → Triggers):
+//   "*/15 * * * *" -> light check for plays reaching 8+ sharp moves; sends Telegram alerts.
+//   "0 15 * * *"   -> once a day starts "Check Action Network login", which fails
+//                     (and GitHub emails you) if the token expired.
 //
 // Settings (Worker → Settings → Variables and Secrets):
 //   GH_TOKEN  (secret)  fine-grained GitHub token: this repo only, "Actions: Read and write"
 const REPO = 'Justinyang597/sharp-tracker';
 const WORKFLOW = 'update.yml';
 const CHECK_WORKFLOW = 'check-token.yml';
+const DAILY_CRON = '0 15 * * *';
 const SITE_ORIGIN = 'https://justinyang597.github.io';
 const MIN_GAP_MS = 90 * 1000;
 
@@ -33,9 +36,9 @@ async function gh(env, path, init = {}) {
   });
 }
 
-// Starts a run unless one is going or one started within minGapMs.
+// Starts a run (mode "full" or "alerts") unless one is going or one started within minGapMs.
 // Returns [httpStatus, body].
-async function startUpdate(env, minGapMs) {
+async function startUpdate(env, minGapMs, mode) {
   if (!env.GH_TOKEN) return [500, { state: 'error', message: 'GH_TOKEN is not set' }];
   const runs = await gh(env, `/actions/workflows/${WORKFLOW}/runs?per_page=5`);
   if (!runs.ok) return [502, { state: 'error', message: `GitHub runs lookup failed (${runs.status})` }];
@@ -49,7 +52,7 @@ async function startUpdate(env, minGapMs) {
   const res = await gh(env, `/actions/workflows/${WORKFLOW}/dispatches`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ref: 'main' }),
+    body: JSON.stringify({ ref: 'main', inputs: { mode } }),
   });
   if (res.status !== 204) return [502, { state: 'error', message: `GitHub dispatch failed (${res.status})` }];
   return [202, { state: 'started' }];
@@ -59,16 +62,23 @@ export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     if (request.method !== 'POST') return reply(405, { state: 'error', message: 'Use POST' });
-    const [status, body] = await startUpdate(env, MIN_GAP_MS);
+    const [status, body] = await startUpdate(env, MIN_GAP_MS, 'full');
     return reply(status, body);
   },
 
-  // Daily: check the Action Network login without pulling any data.
+  // Two cron triggers:
+  //   "0 15 * * *"   daily login check (no data pulled)
+  //   "*/15 * * * *" light check for new 8+ plays, which sends the Telegram alerts.
+  //                  Skipped if any run started in the last 10 minutes (every run sends alerts).
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(gh(env, `/actions/workflows/${CHECK_WORKFLOW}/dispatches`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ref: 'main' }),
-    }));
+    if (event.cron === DAILY_CRON) {
+      ctx.waitUntil(gh(env, `/actions/workflows/${CHECK_WORKFLOW}/dispatches`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ref: 'main' }),
+      }));
+    } else {
+      ctx.waitUntil(startUpdate(env, 10 * 60 * 1000, 'alerts'));
+    }
   },
 };

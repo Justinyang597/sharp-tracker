@@ -1,9 +1,17 @@
 name: Update sharp tracker
 
-# Runs only on demand: the site's Refresh button (via the Cloudflare Worker),
-# or "Run workflow" on the Actions tab.
+# Runs on demand only:
+#   - the site's Refresh button (via the Cloudflare Worker): mode "full"
+#   - the Worker's 15-minute cron, for Telegram alerts: mode "alerts" (today + tomorrow only)
+#   - "Run workflow" on the Actions tab (pick "telegram-test" to check the bot)
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "full = Refresh (last 3 days + tomorrow), alerts = light check for new 8+ plays, telegram-test = send a test message"
+        type: choice
+        options: [full, alerts, telegram-test]
+        default: full
 
 permissions:
   contents: write # commit docs/data.json when bets change
@@ -22,17 +30,27 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
+    env:
+      AN_TOKEN: ${{ secrets.AN_TOKEN }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      MODE: ${{ inputs.mode || 'full' }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Pull sharp data and grade bets
-        env:
-          AN_TOKEN: ${{ secrets.AN_TOKEN }}
-        run: python3 update.py
+      - name: Send a Telegram test message
+        if: env.MODE == 'telegram-test'
+        run: python3 update.py --telegram-test
 
-      # Commit only when bets changed, not when just the "updated" time moved,
-      # so the repo history doesn't grow every 5 minutes.
+      - name: Pull sharp data, grade bets, send Telegram alerts
+        if: env.MODE != 'telegram-test'
+        run: |
+          if [ "$MODE" = "alerts" ]; then python3 update.py --alerts; else python3 update.py; fi
+
+      # Commit only when bets (or alert/warning state) changed, not when just the
+      # "updated" time moved, so the repo history stays small.
       - name: Commit changed bets
+        if: env.MODE != 'telegram-test'
         run: |
           git config user.name "sharp-tracker-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -48,8 +66,11 @@ jobs:
 
       # Publish docs/ as it is now, including the fresh "updated" time.
       - uses: actions/configure-pages@v5
+        if: env.MODE != 'telegram-test'
       - uses: actions/upload-pages-artifact@v3
+        if: env.MODE != 'telegram-test'
         with:
           path: docs
       - id: deploy
+        if: env.MODE != 'telegram-test'
         uses: actions/deploy-pages@v4

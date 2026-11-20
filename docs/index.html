@@ -837,6 +837,8 @@ async function loadData() {
   const at = new Date(d.updated);
   const newer = !updatedAt || at > updatedAt;
   if (newer) { ROWS = d.rows; updatedAt = at; render(); }
+  // Set by the updater when Action Network rejected the login (e.g. on a 15-minute alert check).
+  if (d.token_error) setStatus(LOGIN_MSG, true, true);
   paintFresh();
   return newer;
 }

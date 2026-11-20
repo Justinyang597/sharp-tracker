@@ -25,6 +25,21 @@ The updater signs in with your existing Action Network session, not your passwor
 Treat that value like a password: anyone with it can use your Action Network account.
 Signing out of Action Network ends the session, so you'd need to refresh the secret after that.
 
+## Telegram alerts
+
+Every run (Refresh presses, and the Worker's 15-minute check) sends one Telegram message
+per play the first time it reaches 8+ sharp moves before its game starts. Set it up:
+
+1. In Telegram, message **@BotFather** → `/newbot` → pick a name and a username ending in `bot`.
+   Copy the **token** it gives you.
+2. Open your new bot's chat and press **Start** (a bot can't message you until you do).
+3. Message **@userinfobot** and copy your **Id** number.
+4. In this repo: **Settings** → **Secrets and variables** → **Actions** → add
+   `TELEGRAM_BOT_TOKEN` (the token) and `TELEGRAM_CHAT_ID` (your Id).
+5. **Actions** → **Update sharp tracker** → **Run workflow** → mode `telegram-test`.
+
+To change the threshold, add a repository **variable** or secret named `ALERT_MOVES`.
+
 ## Running locally
 
 ```bash
