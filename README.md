@@ -20,7 +20,9 @@ The updater signs in with your existing Action Network session, not your passwor
 3. Find the cookie named `AN_SESSION_TOKEN_V1` and copy its **Value**.
 4. In this repo on GitHub: **Settings** → **Secrets and variables** → **Actions** →
    `AN_TOKEN` → **Update**, paste the value, and save.
-5. **Actions** tab → **Update sharp tracker** → **Run workflow** to confirm it works.
+5. Also paste it into the Cloudflare Worker: **Settings** → **Variables and Secrets** → `AN_TOKEN`
+   → edit → **Deploy** (the Worker uses it for Telegram alerts).
+6. **Actions** tab → **Update sharp tracker** → **Run workflow** to confirm it works.
 
 Treat that value like a password: anyone with it can use your Action Network account.
 Signing out of Action Network ends the session, so you'd need to refresh the secret after that.
