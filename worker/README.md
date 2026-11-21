@@ -36,6 +36,15 @@ plan's CPU limit; together every sport is checked every 3 minutes.
 | `2-59/3 * * * *` | college basketball |
 | `0 15 * * *` | daily login check |
 
+## Channel layout
+
+- **Pinned board:** one message listing every upcoming 8+ play, grouped by Today / Tomorrow /
+  later days and sorted by start time. It's edited in place (new plays, started games removed,
+  counts refreshed every 30 minutes). To pin it, the bot needs the admin right
+  **Edit messages of others** (Channel → Administrators → your bot).
+- **New-play posts:** each check sends at most one post with the plays that just reached 8+,
+  grouped the same way.
+
 ## Checking it
 
 - The channel gets a one-time "✅ Sharp Tracker alerts are live" post on the first check.
