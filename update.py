@@ -267,9 +267,10 @@ def main():
             sys.exit(msg)
         token_failed(msg)
 
-    # A PRO session gets a pro_report on nearly every game; without PRO only a few
-    # free games have one. Stop before saving so upcoming plays aren't dropped.
-    if seen >= 20 and with_pro < seen * 0.5:
+    # With PRO most games have a pro_report (small-conference college games often don't,
+    # ~55% on a busy NCAAB night); without PRO only a few free games do (~7%).
+    # Stop before saving so upcoming plays aren't dropped.
+    if seen >= 20 and with_pro < seen * 0.25:
         msg = (f"Only {with_pro} of {seen} games had PRO data, so the token isn't a PRO session anymore "
                f"(logged out or subscription lapsed). {fix}")
         if check_only:

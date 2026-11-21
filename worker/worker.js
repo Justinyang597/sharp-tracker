@@ -198,8 +198,9 @@ async function poll(env, group) {
       }
     }
   }
-  // A PRO session has a pro_report on nearly every game; only a few free games have one otherwise.
-  if (seen >= 10 && withPro < seen * 0.5) throw new TokenError(`Only ${withPro} of ${seen} games had PRO data (not a PRO login)`);
+  // With PRO most games have a pro_report (small-conference college games often don't, ~55%
+  // on a busy NCAAB night); without PRO only a few free games do (~7%).
+  if (seen >= 10 && withPro < seen * 0.25) throw new TokenError(`Only ${withPro} of ${seen} games had PRO data (not a PRO login)`);
 
   // Post each play once. Remembered per group until two days after its game.
   const key = `alerted:${group.name}`;
