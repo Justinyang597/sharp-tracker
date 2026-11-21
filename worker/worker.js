@@ -26,7 +26,7 @@ const SITE_ORIGIN = 'https://justinyang597.github.io';
 const SITE_URL = 'https://justinyang597.github.io/sharp-tracker/';
 const MIN_GAP_MS = 90 * 1000;
 const ALERT_MOVES = 8;
-const VERSION = 'board-2'; // shown on /status, to confirm which code is deployed
+const VERSION = 'board-3'; // shown on /status, to confirm which code is deployed
 
 const GROUPS = {
   '*/3 * * * *': { name: 'football', leagues: ['nfl', 'ncaaf'] },
@@ -175,15 +175,17 @@ async function updateBoard(env, now) {
 // ---------- Action Network ----------
 class TokenError extends Error {}
 
+const anHeaders = (env) => ({
+  authorization: env.AN_TOKEN,
+  accept: 'application/json',
+  'user-agent': UA,
+  origin: 'https://www.actionnetwork.com',
+  referer: 'https://www.actionnetwork.com/',
+});
+
 async function an(env, league, params) {
   const res = await fetch(`https://api.actionnetwork.com/web/v2/scoreboard/proreport/${league}?bookIds=15&periods=event${params}`, {
-    headers: {
-      authorization: env.AN_TOKEN,
-      accept: 'application/json',
-      'user-agent': UA,
-      origin: 'https://www.actionnetwork.com',
-      referer: 'https://www.actionnetwork.com/',
-    },
+    headers: anHeaders(env),
   });
   if (res.status === 401) throw new TokenError('Action Network rejected the login (401)');
   if (!res.ok) throw new Error(`${league}${params}: HTTP ${res.status}`);
@@ -245,7 +247,17 @@ async function poll(env, group) {
   }
   // With PRO most games have a pro_report (small-conference college games often don't, ~55%
   // on a busy NCAAB night); without PRO only a few free games do (~7%).
-  if (seen >= 10 && withPro < seen * 0.25) throw new TokenError(`Only ${withPro} of ${seen} games had PRO data (not a PRO login)`);
+  // Low coverage alone isn't proof (some slates are mostly small schools): only treat it as a
+  // login problem if the account endpoint also rejects us; otherwise carry on with what we have.
+  if (seen >= 10 && withPro < seen * 0.25) {
+    const account = await accountStatus(env);
+    if (account === 401 || account === 403) throw new TokenError(`Only ${withPro} of ${seen} games had PRO data (not a PRO login)`);
+  }
+
+  // The same game can come back from two queries (e.g. a late game near midnight): keep one copy.
+  const unique = [...new Map(plays.map((p) => [p.id, p])).values()];
+  plays.length = 0;
+  plays.push(...unique);
 
   // 1. New plays (never posted before) go out as one post, grouped by day, earliest first.
   //    Remembered per group until two days after the game.
@@ -288,10 +300,36 @@ async function poll(env, group) {
   console.log(JSON.stringify(status));
 }
 
-// Expired login: warn the channel at most once a day.
+// A check looked logged out (a 401, or too few games with PRO data). Those happen as one-off
+// blips too, so confirm with the account endpoint (the same test the GitHub login check uses)
+// and only warn when that also rejects the login on two checks at least a few minutes apart.
+// Then warn the channel at most once a day.
+// HTTP status of Action Network's account endpoint for our login (0 if no answer).
+async function accountStatus(env) {
+  try {
+    return (await fetch('https://api.actionnetwork.com/web/v1/me?includeChargifyBillingURL=false', { headers: anHeaders(env) })).status;
+  } catch (e) {
+    return 0;
+  }
+}
+
 async function tokenProblem(env, err) {
-  console.log('Login problem:', err.message);
-  if (await env.ALERTS.get('token_warned')) return;
+  if (await env.ALERTS.get('token_warned')) return; // already told the channel today
+  const account = await accountStatus(env);
+  const loggedOut = account === 401 || account === 403;
+  console.log('Login problem:', err.message, '| account check:', account || 'no answer');
+  // Keep the latest one for /status, but write at most every 30 minutes (KV write limits).
+  const last = JSON.parse((await env.ALERTS.get('login_check')) || 'null');
+  if (!last || Date.now() - Date.parse(last.at) > 30 * 60 * 1000 || last.logged_out !== loggedOut) {
+    await env.ALERTS.put('login_check', JSON.stringify({ at: new Date().toISOString(), reason: err.message, account_check: account || 'no answer', logged_out: loggedOut }));
+  }
+  if (!loggedOut) return; // a blip: the login still works
+
+  const firstFail = await env.ALERTS.get('login_fail_at');
+  if (!firstFail || Date.now() - Date.parse(firstFail) < 4 * 60 * 1000) {
+    if (!firstFail) await env.ALERTS.put('login_fail_at', new Date().toISOString(), { expirationTtl: 30 * 60 });
+    return; // wait for a second confirmed failure before telling the channel
+  }
   if (await send(env, '⚠️ <b>Sharp Tracker alerts are paused.</b>\nThe Action Network login expired, so new plays can\'t be checked until it\'s refreshed.')) {
     await env.ALERTS.put('token_warned', new Date().toISOString(), { expirationTtl: 20 * 3600 });
   }
@@ -311,6 +349,7 @@ export default {
       }
       out.board_message_id = Number((await env.ALERTS?.get('board_id')) || 0) || null;
       out.board_problem = (await env.ALERTS?.get('board_error')) || null;
+      out.last_login_problem = JSON.parse((await env.ALERTS?.get('login_check')) || 'null');
       out.hello = (await env.ALERTS?.get('hello')) || null;
       out.configured = { AN_TOKEN: !!env.AN_TOKEN, TELEGRAM_BOT_TOKEN: !!env.TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID: !!env.TELEGRAM_CHAT_ID, ALERTS: !!env.ALERTS };
       return new Response(JSON.stringify(out, null, 2), { headers: { ...cors, 'Content-Type': 'application/json' } });
