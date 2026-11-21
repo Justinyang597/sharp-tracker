@@ -26,6 +26,7 @@ const SITE_ORIGIN = 'https://justinyang597.github.io';
 const SITE_URL = 'https://justinyang597.github.io/sharp-tracker/';
 const MIN_GAP_MS = 90 * 1000;
 const ALERT_MOVES = 8;
+const VERSION = 'board-2'; // shown on /status, to confirm which code is deployed
 
 const GROUPS = {
   '*/3 * * * *': { name: 'football', leagues: ['nfl', 'ncaaf'] },
@@ -165,9 +166,10 @@ async function updateBoard(env, now) {
   }
   // No board yet (or it was deleted): post a new one and pin it quietly.
   const r = await tg(env, 'sendMessage', { text, parse_mode: 'HTML', disable_web_page_preview: true });
-  if (!r.ok) return;
+  if (!r.ok) { await env.ALERTS.put('board_error', `post failed: ${r.description || 'unknown'}`); return; }
   await env.ALERTS.put('board_id', String(r.result.message_id));
-  await tg(env, 'pinChatMessage', { message_id: r.result.message_id, disable_notification: true });
+  const pin = await tg(env, 'pinChatMessage', { message_id: r.result.message_id, disable_notification: true });
+  await env.ALERTS.put('board_error', pin.ok ? '' : `posted but not pinned: ${pin.description || 'unknown'}`);
 }
 
 // ---------- Action Network ----------
@@ -301,7 +303,14 @@ export default {
     // GET /status: last alert-check summary per sport group (counts only, no secrets).
     if (request.method === 'GET' && new URL(request.url).pathname === '/status') {
       const out = {};
-      for (const g of Object.values(GROUPS)) out[g.name] = JSON.parse((await env.ALERTS?.get(`status:${g.name}`)) || 'null');
+      out.version = VERSION;
+      for (const g of Object.values(GROUPS)) {
+        out[g.name] = JSON.parse((await env.ALERTS?.get(`status:${g.name}`)) || 'null');
+        const hot = JSON.parse((await env.ALERTS?.get(`hot:${g.name}`)) || 'null');
+        out[`${g.name}_on_board`] = hot ? hot.filter((p) => Date.parse(p.t) > Date.now()).length : null;
+      }
+      out.board_message_id = Number((await env.ALERTS?.get('board_id')) || 0) || null;
+      out.board_problem = (await env.ALERTS?.get('board_error')) || null;
       out.hello = (await env.ALERTS?.get('hello')) || null;
       out.configured = { AN_TOKEN: !!env.AN_TOKEN, TELEGRAM_BOT_TOKEN: !!env.TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID: !!env.TELEGRAM_CHAT_ID, ALERTS: !!env.ALERTS };
       return new Response(JSON.stringify(out, null, 2), { headers: { ...cors, 'Content-Type': 'application/json' } });
