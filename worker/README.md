@@ -1,33 +1,45 @@
-# Refresh button relay (Cloudflare Worker)
+# Cloudflare Worker
 
-The site's **Refresh** button starts a new pull from Action Network by calling this
-Worker, which starts the GitHub workflow. The GitHub key lives only in the Worker's
-secret settings, never in the public site.
+One Worker does three jobs:
 
-## 1. Make a GitHub key that can only start this workflow
+- **Refresh button:** the site's Refresh starts the GitHub update workflow.
+- **Telegram channel alerts:** every 3 minutes it checks Action Network and posts each play the
+  first time it reaches 8+ sharp moves before its game starts.
+- **Daily login check:** starts the "Check Action Network login" workflow once a day.
 
-1. Go to https://github.com/settings/personal-access-tokens/new
-2. **Token name:** `sharp-tracker refresh`. **Expiration:** the longest offered (or "No expiration").
-3. **Repository access:** *Only select repositories* → `sharp-tracker`.
-4. **Permissions** → **Repository permissions** → **Actions:** *Read and write*. Leave everything else as is.
-5. **Generate token** and copy it.
+Paste `worker.js` into the Worker (**Edit code** → select all → paste → **Deploy**), then set:
 
-## 2. Create the Worker
+## Variables and Secrets (Settings → Variables and Secrets)
 
-1. Sign up or log in at https://dash.cloudflare.com (the free plan is enough).
-2. **Workers & Pages** → **Create** → **Create Worker** (start from "Hello World").
-   Name it `sharp-tracker-refresh` → **Deploy**.
-3. **Edit code**, replace everything with the contents of `worker.js`, then **Deploy**.
-4. Back on the Worker: **Settings** → **Variables and Secrets** → **Add** →
-   type **Secret**, name `GH_TOKEN`, value = the GitHub key → **Deploy**.
-5. Copy the Worker's URL (like `https://sharp-tracker-refresh.<you>.workers.dev`).
+| Name | Type | Value |
+|---|---|---|
+| `GH_TOKEN` | Secret | fine-grained GitHub token: `sharp-tracker` only, **Actions: Read and write** |
+| `AN_TOKEN` | Secret | the `AN_SESSION_TOKEN_V1` cookie value (same as the GitHub `AN_TOKEN` secret) |
+| `TELEGRAM_BOT_TOKEN` | Secret | the token from @BotFather |
+| `TELEGRAM_CHAT_ID` | Text | the channel: `@yourchannel` if public, or its `-100…` id if private |
 
-Then put that URL in `REFRESH_URL` near the bottom of `docs/index.html`.
+## KV storage (remembers which plays were already posted)
 
-## 3. Daily login check
+1. Cloudflare → **Storage & Databases** → **KV** → **Create** → name it `sharp-alerts`.
+2. Worker → **Settings** → **Bindings** → **Add** → **KV namespace** →
+   variable name `ALERTS`, namespace `sharp-alerts` → **Deploy**.
 
-Once a day the Worker starts the "Check Action Network login" workflow. If your token
-has expired, that run fails and GitHub emails you.
+## Cron triggers (Settings → Trigger Events)
 
-1. On the Worker: **Settings** → **Triggers** → **Cron Triggers** → **Add**.
-2. Choose **Custom**/**Cron expression**, enter `0 15 * * *` (daily, 15:00 UTC), and **Add** / **Save**.
+Add all four. The sports are split across three timers so each run stays within the free
+plan's CPU limit; together every sport is checked every 3 minutes.
+
+| Cron | Checks |
+|---|---|
+| `*/3 * * * *` | NFL, NCAAF |
+| `1-59/3 * * * *` | NBA, NHL, MLB |
+| `2-59/3 * * * *` | college basketball |
+| `0 15 * * *` | daily login check |
+
+## Checking it
+
+- The channel gets a one-time "✅ Sharp Tracker alerts are live" post on the first check.
+- `https://<your-worker>.workers.dev/status` shows the last check per sport group (counts
+  only) and which settings are present.
+- If the Action Network login expires, the channel gets one "alerts are paused" post a day
+  until the `AN_TOKEN` secret is refreshed here and on GitHub.
