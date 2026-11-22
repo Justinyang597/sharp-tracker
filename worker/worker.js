@@ -26,7 +26,7 @@ const SITE_ORIGIN = 'https://justinyang597.github.io';
 const SITE_URL = 'https://justinyang597.github.io/sharp-tracker/';
 const MIN_GAP_MS = 90 * 1000;
 const ALERT_MOVES = 8;
-const VERSION = 'board-3'; // shown on /status, to confirm which code is deployed
+const VERSION = 'board-4'; // shown on /status, to confirm which code is deployed
 
 const GROUPS = {
   '*/3 * * * *': { name: 'football', leagues: ['nfl', 'ncaaf'] },
@@ -125,7 +125,8 @@ function pickLabel(p) {
 // Two lines per play: when, sport and game; then the pick, odds and sharp moves.
 function playLines(p) {
   const odds = p.odds == null ? '' : ` (${p.odds > 0 ? '+' : ''}${p.odds})`;
-  return `🕒 <b>${etTime(new Date(p.t))}</b> · ${LEAGUE_NAME[p.lg] || p.lg.toUpperCase()} · ${escHtml(p.a)} @ ${escHtml(p.h)}\n` +
+  const late = Date.parse(p.t) <= Date.now() ? ' <i>(starting now)</i>' : '';
+  return `🕒 <b>${etTime(new Date(p.t))}</b>${late} · ${LEAGUE_NAME[p.lg] || p.lg.toUpperCase()} · ${escHtml(p.a)} @ ${escHtml(p.h)}\n` +
     `      <b>${escHtml(pickLabel(p))}</b>${odds} · 🔥 <b>${p.steam + p.rlm}</b> (${p.steam} steam / ${p.rlm} rev)`;
 }
 // Packs plays into messages grouped under day headers, earliest game first, each under
@@ -192,11 +193,15 @@ async function an(env, league, params) {
   return res.json();
 }
 
+// Sharp money often lands right at tip-off, after the last check before the listed start time.
+// Games Action Network still shows as not started count for this long past their listed start.
+const LATE_GRACE_MS = 20 * 60 * 1000;
+
 // Plays in one game that have ALERT_MOVES+ sharp moves and haven't started.
 function hotPlays(league, game, now) {
   const out = [];
   const pr = game.pro_report;
-  if (!pr || game.status !== 'scheduled' || Date.parse(game.start_time) <= now) return out;
+  if (!pr || game.status !== 'scheduled' || Date.parse(game.start_time) <= now - LATE_GRACE_MS) return out;
   const teams = game.teams || [];
   const away = teams.find((t) => t.id === game.away_team_id) || teams[0] || {};
   const home = teams.find((t) => t.id === game.home_team_id) || teams[1] || {};
