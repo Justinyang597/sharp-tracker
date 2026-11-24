@@ -15,7 +15,7 @@
 //   TELEGRAM_BOT_TOKEN  secret  from @BotFather
 //   TELEGRAM_CHAT_ID    text    the channel: "@yourchannel" (public) or its -100... id (private)
 //   FEED_CHAT_ID        text    the filtered-feed channel (same format); optional
-//   TELEGRAM_ADMIN_ID   text    your Telegram user id (the bot tells you it): only you can change the filter
+//   TELEGRAM_ADMIN_ID   text    Telegram user ids allowed to change the filter, comma-separated (the bot tells each person theirs)
 // Bindings → KV namespace:  variable name ALERTS
 // Settings → Triggers → Cron Triggers (all four):
 //   */3 * * * *     football (NFL, NCAAF)
@@ -32,7 +32,7 @@ const SITE_URL = 'https://justinyang597.github.io/sharp-tracker/';
 const MIN_GAP_MS = 90 * 1000;
 const ALERT_MOVES = 8;
 const WORKER_URL = 'https://sharp-tracker-refresh.justinyaang.workers.dev';
-const VERSION = 'feed-1'; // shown on /status, to confirm which code is deployed
+const VERSION = 'feed-2'; // shown on /status, to confirm which code is deployed
 
 const GROUPS = {
   '*/3 * * * *': { name: 'football', leagues: ['nfl', 'ncaaf'] },
@@ -373,9 +373,10 @@ async function telegramUpdate(env, u) {
   const chat = u.message ? u.message.chat : q && q.message && q.message.chat;
   if (!from || !chat || chat.type !== 'private') return;
   const say = (text) => tg(env, 'sendMessage', { chat_id: chat.id, text, parse_mode: 'HTML' });
-  if (String(from.id) !== String(env.TELEGRAM_ADMIN_ID || '')) {
+  const admins = String(env.TELEGRAM_ADMIN_ID || '').split(/[\s,]+/).filter(Boolean);
+  if (!admins.includes(String(from.id))) {
     if (q) await tg(env, 'answerCallbackQuery', { chat_id: undefined, callback_query_id: q.id });
-    return say(env.TELEGRAM_ADMIN_ID ? 'This bot only takes settings from its owner.'
+    return say(admins.length ? `This bot only takes settings from its admins.\nYour Telegram ID is <code>${from.id}</code>: send it to the owner if you should have access.`
       : `Your Telegram ID is <code>${from.id}</code>.\nAdd it in Cloudflare as <b>TELEGRAM_ADMIN_ID</b> (Worker → Settings → Variables and Secrets), then send /settings here.`);
   }
   const f = await getFeed(env);

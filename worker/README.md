@@ -59,7 +59,8 @@ The main channel still gets every 8+ play.
    and **Test post** to check the channel is connected. Changes apply on the next check (≤3 min).
 
 The Worker connects the settings chat to Telegram on its own within 3 minutes of deploying.
-Only the `TELEGRAM_ADMIN_ID` account can change the settings.
+Only accounts listed in `TELEGRAM_ADMIN_ID` can change the settings. To add someone, have them send
+`/settings` to the bot (it replies with their ID), then add it after yours with a comma: `111, 222`.
 
 ## Checking it
 
