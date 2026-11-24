@@ -6,11 +6,16 @@
 //      pinned board lists every upcoming 8+ play in start-time order (edited in place).
 //   3. Daily login check: starts the "Check Action Network login" GitHub workflow.
 //
+//   4. Filtered feed: a second channel that only gets plays matching your own sports and minimum
+//      moves (e.g. NCAAF 13+). Set it with buttons in a private chat with the bot (/settings).
+//
 // Settings → Variables and Secrets:
 //   GH_TOKEN            secret  fine-grained GitHub token: sharp-tracker only, "Actions: Read and write"
 //   AN_TOKEN            secret  value of the AN_SESSION_TOKEN_V1 cookie (same as the GitHub secret)
 //   TELEGRAM_BOT_TOKEN  secret  from @BotFather
 //   TELEGRAM_CHAT_ID    text    the channel: "@yourchannel" (public) or its -100... id (private)
+//   FEED_CHAT_ID        text    the filtered-feed channel (same format); optional
+//   TELEGRAM_ADMIN_ID   text    your Telegram user id (the bot tells you it): only you can change the filter
 // Bindings → KV namespace:  variable name ALERTS
 // Settings → Triggers → Cron Triggers (all four):
 //   */3 * * * *     football (NFL, NCAAF)
@@ -26,7 +31,8 @@ const SITE_ORIGIN = 'https://justinyang597.github.io';
 const SITE_URL = 'https://justinyang597.github.io/sharp-tracker/';
 const MIN_GAP_MS = 90 * 1000;
 const ALERT_MOVES = 8;
-const VERSION = 'board-4'; // shown on /status, to confirm which code is deployed
+const WORKER_URL = 'https://sharp-tracker-refresh.justinyaang.workers.dev';
+const VERSION = 'feed-1'; // shown on /status, to confirm which code is deployed
 
 const GROUPS = {
   '*/3 * * * *': { name: 'football', leagues: ['nfl', 'ncaaf'] },
@@ -198,7 +204,7 @@ async function an(env, league, params) {
 const LATE_GRACE_MS = 20 * 60 * 1000;
 
 // Plays in one game that have ALERT_MOVES+ sharp moves and haven't started.
-function hotPlays(league, game, now) {
+function hotPlays(league, game, now, minMoves = ALERT_MOVES) {
   const out = [];
   const pr = game.pro_report;
   if (!pr || game.status !== 'scheduled' || Date.parse(game.start_time) <= now - LATE_GRACE_MS) return out;
@@ -212,7 +218,7 @@ function hotPlays(league, game, now) {
       if (!s) continue;
       const steam = (s.meta && s.meta.steam_moves) || 0;
       const rlm = (s.meta && s.meta.reverse_line_moves) || 0;
-      if (steam + rlm < ALERT_MOVES) continue;
+      if (steam + rlm < minMoves) continue;
       const teamId = side === 'away' ? away.id : side === 'home' ? home.id : null;
       const o = (book[m] || []).find((x) => (m === 'total' ? x.side === side : x.side === side || (teamId && x.team_id === teamId)));
       out.push({
@@ -227,6 +233,10 @@ function hotPlays(league, game, now) {
 
 async function poll(env, group) {
   const now = Date.now();
+  // The filtered feed may want plays below 8 (it can go down to 5), so pull down to its minimum.
+  const feed = await getFeed(env);
+  const feedOn = feed.on && !!env.FEED_CHAT_ID && group.leagues.some((lg) => feed.sports.includes(lg));
+  const pullMin = feedOn ? Math.min(ALERT_MOVES, feed.min) : ALERT_MOVES;
   const days = [etDate(new Date(now)), etDate(new Date(now + 864e5))].map((d) => d.replace(/-/g, ''));
   const plays = [];
   let seen = 0, withPro = 0;
@@ -242,7 +252,7 @@ async function poll(env, group) {
         for (const g of j.games || []) {
           seen++;
           if (g.pro_report) withPro++;
-          plays.push(...hotPlays(lg, g, now));
+          plays.push(...hotPlays(lg, g, now, pullMin));
         }
       } catch (e) {
         if (e instanceof TokenError) throw e;
@@ -262,7 +272,10 @@ async function poll(env, group) {
   // The same game can come back from two queries (e.g. a late game near midnight): keep one copy.
   const unique = [...new Map(plays.map((p) => [p.id, p])).values()];
   plays.length = 0;
-  plays.push(...unique);
+  plays.push(...unique.filter((p) => p.steam + p.rlm >= ALERT_MOVES)); // the main channel: 8+
+
+  // 0. The filtered feed (its own channel, its own memory of what it already posted).
+  if (feedOn) await postFeed(env, group, feed, unique, now);
 
   // 1. New plays (never posted before) go out as one post, grouped by day, earliest first.
   //    Remembered per group until two days after the game.
@@ -305,6 +318,103 @@ async function poll(env, group) {
   console.log(JSON.stringify(status));
 }
 
+// ---------- Filtered feed (second channel) ----------
+const FEED_SPORTS = ['ncaaf', 'nfl', 'ncaab', 'nba', 'nhl', 'mlb'];
+const FEED_DEFAULT = { sports: ['ncaaf'], min: 13, on: true };
+const FEED_MIN = 5, FEED_MAX = 40;
+
+async function getFeed(env) {
+  try { return { ...FEED_DEFAULT, ...JSON.parse((await env.ALERTS.get('feed')) || '{}') }; } catch (e) { return { ...FEED_DEFAULT }; }
+}
+const feedLabel = (f) => `${f.sports.length ? f.sports.map((s) => LEAGUE_NAME[s]).join(', ') : 'no sports'} · ${f.min}+ moves`;
+
+async function postFeed(env, group, feed, plays, now) {
+  const match = plays.filter((p) => feed.sports.includes(p.lg) && p.steam + p.rlm >= feed.min);
+  const key = `feed_alerted:${group.name}`;
+  const alerted = JSON.parse((await env.ALERTS.get(key)) || '{}');
+  let changed = false;
+  for (const [id, until] of Object.entries(alerted)) if (until < now) { delete alerted[id]; changed = true; }
+  const fresh = match.filter((p) => !alerted[p.id]);
+  if (fresh.length) {
+    const sports = [...new Set(fresh.map((p) => LEAGUE_NAME[p.lg]))].join(' / ');
+    const title = `🎯 <b>${sports} ${feed.min}+ SHARP ${fresh.length === 1 ? 'PLAY' : `PLAYS (${fresh.length})`}</b>`;
+    for (const text of messages(title, fresh, now, FOOTER)) {
+      if (!(await tg(env, 'sendMessage', { chat_id: env.FEED_CHAT_ID, text, parse_mode: 'HTML', disable_web_page_preview: true })).ok) break;
+      await sleep(1100);
+    }
+    for (const p of fresh) alerted[p.id] = Date.parse(p.t) + 2 * 864e5;
+    changed = true;
+  }
+  if (changed) await env.ALERTS.put(key, JSON.stringify(alerted));
+}
+
+// The settings panel: a message with buttons in your private chat with the bot.
+function feedPanel(env, f) {
+  const text = `🎯 <b>Filtered feed settings</b>\n` +
+    `The second channel only gets plays matching:\n<b>${escHtml(feedLabel(f))}</b>${f.on ? '' : ' <i>(paused)</i>'}\n\n` +
+    (env.FEED_CHAT_ID ? 'Tap a sport to turn it on or off. Use − / + for the minimum sharp moves.' : '⚠️ FEED_CHAT_ID isn\'t set in Cloudflare yet, so nothing is posted.') +
+    `\nThe main channel still gets every ${ALERT_MOVES}+ play.`;
+  const btn = (t, d) => ({ text: t, callback_data: d });
+  const sp = FEED_SPORTS.map((s) => btn(`${f.sports.includes(s) ? '✅' : '▫️'} ${LEAGUE_NAME[s]}`, `s:${s}`));
+  return {
+    text, parse_mode: 'HTML',
+    reply_markup: { inline_keyboard: [
+      sp.slice(0, 3), sp.slice(3),
+      [btn('−5', 'm:-5'), btn('−1', 'm:-1'), btn(`${f.min}+`, 'noop'), btn('+1', 'm:1'), btn('+5', 'm:5')],
+      [btn(f.on ? '⏸ Pause feed' : '▶️ Resume feed', 'p'), btn('📤 Test post', 't')],
+    ] },
+  };
+}
+
+// Telegram webhook: /settings in a private chat, and the panel's button taps. Only the admin.
+async function telegramUpdate(env, u) {
+  const q = u.callback_query;
+  const from = (u.message || q || {}).from;
+  const chat = u.message ? u.message.chat : q && q.message && q.message.chat;
+  if (!from || !chat || chat.type !== 'private') return;
+  const say = (text) => tg(env, 'sendMessage', { chat_id: chat.id, text, parse_mode: 'HTML' });
+  if (String(from.id) !== String(env.TELEGRAM_ADMIN_ID || '')) {
+    if (q) await tg(env, 'answerCallbackQuery', { chat_id: undefined, callback_query_id: q.id });
+    return say(env.TELEGRAM_ADMIN_ID ? 'This bot only takes settings from its owner.'
+      : `Your Telegram ID is <code>${from.id}</code>.\nAdd it in Cloudflare as <b>TELEGRAM_ADMIN_ID</b> (Worker → Settings → Variables and Secrets), then send /settings here.`);
+  }
+  const f = await getFeed(env);
+  if (!q) return tg(env, 'sendMessage', { chat_id: chat.id, ...feedPanel(env, f) });
+
+  const d = q.data || '';
+  const changes = d.startsWith('s:') || d.startsWith('m:') || d === 'p';
+  let note = '';
+  if (d.startsWith('s:')) {
+    const s = d.slice(2);
+    f.sports = f.sports.includes(s) ? f.sports.filter((x) => x !== s) : FEED_SPORTS.filter((x) => x === s || f.sports.includes(x));
+  } else if (d.startsWith('m:')) {
+    f.min = Math.max(FEED_MIN, Math.min(FEED_MAX, f.min + Number(d.slice(2))));
+  } else if (d === 'p') {
+    f.on = !f.on;
+  } else if (d === 't') {
+    const ok = !!env.FEED_CHAT_ID && (await tg(env, 'sendMessage', { chat_id: env.FEED_CHAT_ID, text: `✅ <b>Filtered feed connected.</b>\nThis channel gets: <b>${escHtml(feedLabel(f))}</b>${f.on ? '' : ' (paused)'}\n${FOOTER}`, parse_mode: 'HTML', disable_web_page_preview: true })).ok;
+    note = ok ? 'Test post sent.' : 'Test post failed: check FEED_CHAT_ID, and that the bot is an admin of that channel.';
+  }
+  if (changes) await env.ALERTS.put('feed', JSON.stringify(f));
+  await tg(env, 'answerCallbackQuery', { chat_id: undefined, callback_query_id: q.id, text: note || undefined, show_alert: !!note });
+  if (changes) await tg(env, 'editMessageText', { chat_id: chat.id, message_id: q.message.message_id, ...feedPanel(env, f) });
+}
+
+// Shared secret so only Telegram can call the webhook: derived from the bot token, nothing to set.
+async function webhookSecret(env) {
+  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('webhook:' + env.TELEGRAM_BOT_TOKEN));
+  return [...new Uint8Array(h)].slice(0, 20).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+// Points Telegram at this Worker once (and again if the bot token changes).
+async function ensureWebhook(env) {
+  const secret = await webhookSecret(env);
+  if ((await env.ALERTS.get('webhook')) === secret) return;
+  const r = await tg(env, 'setWebhook', { chat_id: undefined, url: `${WORKER_URL}/tg`, secret_token: secret, allowed_updates: ['message', 'callback_query'] });
+  if (!r.ok) return;
+  await env.ALERTS.put('webhook', secret);
+  await tg(env, 'setMyCommands', { chat_id: undefined, commands: [{ command: 'settings', description: 'Filtered feed: sports and minimum sharp moves' }], scope: { type: 'all_private_chats' } });
+}
+
 // A check looked logged out (a 401, or too few games with PRO data). Those happen as one-off
 // blips too, so confirm with the account endpoint (the same test the GitHub login check uses)
 // and only warn when that also rejects the login on two checks at least a few minutes apart.
@@ -343,6 +453,12 @@ async function tokenProblem(env, err) {
 export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
+    // Telegram webhook (the filtered feed's settings buttons).
+    if (request.method === 'POST' && new URL(request.url).pathname === '/tg') {
+      if (!env.TELEGRAM_BOT_TOKEN || !env.ALERTS || request.headers.get('X-Telegram-Bot-Api-Secret-Token') !== (await webhookSecret(env))) return new Response('no', { status: 403 });
+      try { await telegramUpdate(env, await request.json()); } catch (e) { console.log('Telegram update failed:', e.message || e); }
+      return new Response('ok');
+    }
     // GET /status: last alert-check summary per sport group (counts only, no secrets).
     if (request.method === 'GET' && new URL(request.url).pathname === '/status') {
       const out = {};
@@ -356,7 +472,9 @@ export default {
       out.board_problem = (await env.ALERTS?.get('board_error')) || null;
       out.last_login_problem = JSON.parse((await env.ALERTS?.get('login_check')) || 'null');
       out.hello = (await env.ALERTS?.get('hello')) || null;
-      out.configured = { AN_TOKEN: !!env.AN_TOKEN, TELEGRAM_BOT_TOKEN: !!env.TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID: !!env.TELEGRAM_CHAT_ID, ALERTS: !!env.ALERTS };
+      out.feed = env.ALERTS ? await getFeed(env) : null;
+      out.feed_settings_chat = !!(await env.ALERTS?.get('webhook'));
+      out.configured = { AN_TOKEN: !!env.AN_TOKEN, TELEGRAM_BOT_TOKEN: !!env.TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID: !!env.TELEGRAM_CHAT_ID, FEED_CHAT_ID: !!env.FEED_CHAT_ID, TELEGRAM_ADMIN_ID: !!env.TELEGRAM_ADMIN_ID, ALERTS: !!env.ALERTS };
       return new Response(JSON.stringify(out, null, 2), { headers: { ...cors, 'Content-Type': 'application/json' } });
     }
     if (request.method !== 'POST') return reply(405, { state: 'error', message: 'Use POST' });
@@ -371,6 +489,7 @@ export default {
     }
     const group = GROUPS[event.cron];
     if (!group || !env.AN_TOKEN || !env.ALERTS) return;
+    if (env.TELEGRAM_BOT_TOKEN) ctx.waitUntil(ensureWebhook(env).catch((e) => console.log('Webhook setup failed:', e.message || e)));
     ctx.waitUntil(poll(env, group).catch((e) => (e instanceof TokenError ? tokenProblem(env, e) : console.log('Alert check failed:', e.message || e))));
   },
 };

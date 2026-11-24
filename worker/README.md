@@ -45,6 +45,22 @@ plan's CPU limit; together every sport is checked every 3 minutes.
 - **New-play posts:** each check sends at most one post with the plays that just reached 8+,
   grouped the same way.
 
+## Filtered feed (optional second channel)
+
+A separate channel that only gets the plays you choose, e.g. **college football at 13+ moves**.
+The main channel still gets every 8+ play.
+
+1. Create a second Telegram channel and add the bot as an admin (it only needs **Post messages**).
+2. Add `FEED_CHAT_ID` (Text) in the Worker's Variables and Secrets: the new channel's `@name`
+   or `-100…` id. **Deploy**.
+3. Open a private chat with the bot and send `/settings`. The first time, it replies with your
+   Telegram ID: add it as `TELEGRAM_ADMIN_ID` (Text), **Deploy**, and send `/settings` again.
+4. Use the buttons: tap sports on or off, −/+ for the minimum moves (5–40), pause or resume,
+   and **Test post** to check the channel is connected. Changes apply on the next check (≤3 min).
+
+The Worker connects the settings chat to Telegram on its own within 3 minutes of deploying.
+Only the `TELEGRAM_ADMIN_ID` account can change the settings.
+
 ## Checking it
 
 - The channel gets a one-time "✅ Sharp Tracker alerts are live" post on the first check.
