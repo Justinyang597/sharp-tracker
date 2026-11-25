@@ -19,34 +19,30 @@ the record down by move count, sport and bet type. It has logged and graded 6,00
 ## Architecture
 
 ```mermaid
-flowchart LR
-    AN[(Action Network<br/>PRO API)]
+flowchart TB
+    AN[(Action Network PRO API)]
 
-    subgraph CF [Cloudflare Worker · free plan]
-        CRON[Cron triggers<br/>every 3 min]
-        KV[(KV store<br/>posted plays, board,<br/>feed settings)]
-        HTTP[HTTP endpoints<br/>/ · /status · /tg]
+    subgraph GH [Tracker: GitHub]
+        direction TB
+        ACT[Actions workflow<br/>update.py: pull + grade] --> DATA[(docs/data.json)]
+        DATA --> PAGES[GitHub Pages<br/>dashboard]
     end
 
-    subgraph GH [GitHub]
-        ACT[Actions workflow<br/>update.py]
-        DATA[(docs/data.json<br/>in the repo)]
-        PAGES[GitHub Pages<br/>dashboard]
+    subgraph CF [Alerts + Refresh relay: Cloudflare Worker]
+        direction TB
+        CRON[Cron checks<br/>every 3 min] <--> KV[(KV: posted plays,<br/>board, feed settings)]
+        HTTP[HTTP endpoints]
     end
 
-    TG[Telegram<br/>main channel +<br/>filtered feed]
     USER((Viewer))
+    TG[Telegram channels]
 
-    CRON -- poll upcoming games --> AN
-    CRON <--> KV
-    CRON -- new 8+ plays,<br/>pinned board --> TG
-    TG -- /settings button taps<br/>(webhook) --> HTTP
-
-    USER -- Refresh button --> HTTP
+    AN --> ACT
+    AN --> CRON
+    CRON -- new 8+ plays, pinned board --> TG
+    TG -- settings button taps --> HTTP
+    USER -- Refresh --> HTTP
     HTTP -- workflow_dispatch --> ACT
-    ACT -- pull + grade --> AN
-    ACT -- commit changed bets --> DATA
-    DATA --> PAGES
     PAGES -- data.json --> USER
 ```
 
